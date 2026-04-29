@@ -1,4 +1,5 @@
 'use client'
+
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -89,7 +90,7 @@ function LoginView({ onLogin, goForgot }) {
             transition={{ duration: 0.8 }}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs uppercase tracking-widest text-fuchsia-300"
           >
-            <Sparkles size={14} /> Season 07 · Live Now
+            <Sparkles size={14} /> Month 04 · Live Now
           </motion.div>
           <h1 className="font-display text-5xl xl:text-6xl font-black leading-[1.05]">
             Unlock <span className="gradient-text-cyber">Peak</span><br />
@@ -456,7 +457,7 @@ function DashboardView({ user, onLogout }) {
         <section className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-[11px] uppercase tracking-[0.3em] text-fuchsia-300 mb-3">
-              <Flame size={12} /> Season 07 · {period}
+              <Flame size={12} /> Month 05 · {period}
             </div>
             <h1 className="font-display text-4xl md:text-5xl font-black leading-tight">
               The <span className="gradient-text-cyber">KIME</span> Podium
@@ -562,30 +563,81 @@ function DashboardView({ user, onLogout }) {
 }
 
 /* ------------- DASHBOARD COMPONENTS ------------- */
-function CountdownCard({ time }) {
+function CountdownCard() {
+  const [time, setTime] = useState({
+    d: 0,
+    h: 0,
+    m: 0,
+    s: 0,
+  })
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date()
+
+      // Next month 1st date at 12:00 AM
+      const nextReset = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        1,
+        0,
+        0,
+        0,
+        0
+      )
+
+      const diff = nextReset - now
+
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const h = Math.floor((diff / (1000 * 60 * 60)) % 24)
+      const m = Math.floor((diff / (1000 * 60)) % 60)
+      const s = Math.floor((diff / 1000) % 60)
+
+      setTime({ d, h, m, s })
+    }
+
+    updateCountdown()
+
+    const interval = setInterval(updateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   const box = (v, l) => (
-    <div className="text-center">
+    <div className="text-center min-w-[52px]">
       <div className="font-display text-3xl font-black gradient-text-gold tabular-nums">
-        {String(v).padStart(2, '0')}
+        {String(v).padStart(2, "0")}
       </div>
-      <div className="text-[9px] uppercase tracking-[0.25em] text-white/50 mt-0.5">{l}</div>
+      <div className="text-[9px] uppercase tracking-[0.25em] text-white/50 mt-0.5">
+        {l}
+      </div>
     </div>
   )
+
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-      className="relative glass-strong rounded-2xl px-6 py-4 neon-border-gold min-w-[320px]">
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="relative glass-strong rounded-2xl px-6 py-4 neon-border-gold min-w-[320px]"
+    >
       <div className="flex items-center gap-2 mb-2">
         <Calendar size={14} className="text-amber-400" />
-        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300">Season Ends In</div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-amber-300">
+          Monthly Reset In
+        </div>
       </div>
+
       <div className="flex items-center gap-4">
-        {box(time.d, 'Days')}
+        {box(time.d, "Days")}
         <div className="text-amber-400/40 font-display text-2xl">:</div>
-        {box(time.h, 'Hours')}
+
+        {box(time.h, "Hours")}
         <div className="text-amber-400/40 font-display text-2xl">:</div>
-        {box(time.m, 'Mins')}
+
+        {box(time.m, "Mins")}
         <div className="text-amber-400/40 font-display text-2xl">:</div>
-        {box(time.s, 'Secs')}
+
+        {box(time.s, "Secs")}
       </div>
     </motion.div>
   )
@@ -665,7 +717,7 @@ function PodiumCard({ user, rank, onSnap }) {
           <div className="grid grid-cols-3 gap-3 w-full pt-3 border-t border-white/10">
             <Stat label="Points" value={user.points} format="compact" accent={cfg.txt} />
             <Stat label="Revenue" value={user.revenue} format="money" accent={cfg.txt} />
-            <Stat label="Admits" value={user.admissions} accent={cfg.txt} />
+            <Stat label="Adms" value={user.admissions} accent={cfg.txt} />
           </div>
         </div>
       </div>
@@ -721,19 +773,9 @@ function Dropdown({ label, value, onChange, options }) {
 
   // Decide whether to open upward when there isn't enough space below.
   const handleToggle = () => {
-    setOpen(prev => {
-      const next = !prev
-      if (next && triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect()
-        const spaceBelow = window.innerHeight - rect.bottom
-        const spaceAbove = rect.top
-        const needed = Math.min(280, options.length * 40 + 16)
-        setOpenUp(spaceBelow < needed && spaceAbove > spaceBelow)
-      }
-      return next
-    })
+    setOpen(prev => !prev)
+    setOpenUp(true) // Always open upward
   }
-
   return (
     <div className="relative">
       <button ref={triggerRef} onClick={handleToggle}
@@ -747,9 +789,15 @@ function Dropdown({ label, value, onChange, options }) {
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <motion.div
-              initial={{ opacity: 0, y: openUp ? 6 : -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: openUp ? 6 : -6 }}
-              className={`absolute z-50 min-w-[220px] rounded-xl p-1.5 border border-white/15 shadow-2xl shadow-black/70 max-h-[280px] overflow-y-auto ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'}`}
-              style={{ background: 'linear-gradient(180deg, rgba(15,12,32,0.98), rgba(8,8,18,0.98))', backdropFilter: 'blur(16px)' }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-full left-0 mb-2 z-[9999] min-w-[220px] rounded-xl p-1.5 border border-white/15 shadow-2xl shadow-black/70 max-h-[280px] overflow-y-auto"
+              style={{
+                background:
+                 "linear-gradient(180deg, rgba(15,12,32,0.98), rgba(8,8,18,0.98))",
+                backdropFilter: "blur(16px)"
+              }}
             >
               {options.map(opt => (
                 <button key={opt} onClick={() => { onChange(opt); setOpen(false) }}
@@ -846,35 +894,74 @@ function LeaderboardTable({ rows, onSnap }) {
 function RewardsSection() {
   return (
     <div>
-      <SectionHeader icon={Gift} title="Rewards & Glory" subtitle="Claim your spoils by dominating the month" />
+      {/* Header Visible */}
+      <SectionHeader
+        icon={Gift}
+        title="Rewards & Glory"
+        subtitle="Claim your spoils by dominating the month"
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {REWARDS.map((r, i) => (
-          <motion.div key={r.title}
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+          <motion.div
+            key={r.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
             whileHover={{ y: -8 }}
             className="relative group"
           >
-            <div className="relative glass-strong rounded-2xl p-6 border border-white/10 overflow-hidden"
-              style={{ boxShadow: `0 15px 50px -15px ${r.glow}` }}>
-              <div className={`absolute -top-16 -right-16 w-48 h-48 rounded-full bg-gradient-to-br ${r.color} opacity-30 blur-3xl group-hover:opacity-60 transition`} />
-              <div className="relative">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${r.color} grid place-items-center text-3xl shadow-xl`}>
+            <div
+              className="relative glass-strong rounded-2xl p-6 border border-white/10 overflow-hidden"
+              style={{ boxShadow: `0 15px 50px -15px ${r.glow}` }}
+            >
+              {/* Background Glow */}
+              <div
+                className={`absolute -top-16 -right-16 w-48 h-48 rounded-full bg-gradient-to-br ${r.color} opacity-30 blur-3xl group-hover:opacity-60 transition`}
+              />
+
+              {/* BLURRED CONTENT */}
+              <div className="relative blur-md opacity-50">
+                <div
+                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${r.color} grid place-items-center text-3xl shadow-xl`}
+                >
                   {r.icon}
                 </div>
+
                 <div className="mt-4">
-                  <div className="font-display font-bold text-xl text-white">{r.title}</div>
-                  <div className="text-xs text-white/50 mt-0.5">{r.sub}</div>
-                </div>
-                <div className="mt-5 flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-white/40">Prize</div>
-                    <div className="font-display font-black text-lg gradient-text-gold">{r.prize}</div>
+                  <div className="font-display font-bold text-xl text-white">
+                    {r.title}
                   </div>
+                  <div className="text-xs text-white/50 mt-0.5">
+                    {r.sub}
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-widest text-white/40">
+                    Prize
+                  </div>
+
                   <button className="btn-glow px-3 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/15 border border-white/10">
                     View →
                   </button>
                 </div>
               </div>
+
+              {/* VISIBLE PRICE */}
+              <div className="absolute bottom-6 left-6 z-20">
+                <div className="font-display font-black text-lg gradient-text-gold">
+                  {r.prize}
+                </div>
+              </div>
+
+              {/* COMING SOON BADGE */}
+              <div className="absolute inset-0 flex items-center justify-center z-30">
+                <div className="px-5 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white font-display text-sm md:text-base shadow-lg">
+                  Coming Soon 
+                </div>
+              </div>
+
             </div>
           </motion.div>
         ))}
@@ -885,38 +972,79 @@ function RewardsSection() {
 
 function ChallengesSection() {
   return (
-    <div>
-      <SectionHeader icon={Target} title="Active Challenges" subtitle="Smash these to supercharge your climb" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {CHALLENGES.map((ch, i) => (
-          <motion.div key={ch.title}
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-            className="glass-strong rounded-2xl p-6 border border-white/10 neon-border-blue">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-widest text-sky-300 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30">{ch.tier}</span>
-              <span className="text-[10px] text-white/50">{ch.deadline}</span>
-            </div>
-            <div className="font-display font-bold text-lg text-white mt-3">{ch.title}</div>
-            <div className="text-xs text-white/50">Reward · <span className="text-amber-300 font-semibold">{ch.reward}</span></div>
-            <div className="mt-4">
-              <div className="flex justify-between text-[10px] uppercase tracking-widest text-white/50 mb-1">
-                <span>Progress</span><span className="tabular-nums">{ch.progress}%</span>
+    <div className="relative">
+
+      {/* Main Content */}
+      <div className="pointer-events-none select-none blur-sm opacity-60">
+        <SectionHeader
+          icon={Target}
+          title="Active Challenges"
+          subtitle="Smash these to supercharge your climb"
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {CHALLENGES.map((ch, i) => (
+            <motion.div
+              key={ch.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="glass-strong rounded-2xl p-6 border border-white/10 neon-border-blue"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-widest text-sky-300 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30">
+                  {ch.tier}
+                </span>
+                <span className="text-[10px] text-white/50">{ch.deadline}</span>
               </div>
-              <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${ch.progress}%` }} transition={{ delay: 0.15 + i * 0.1, duration: 1 }}
-                  className="h-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500" />
+
+              <div className="font-display font-bold text-lg text-white mt-3">
+                {ch.title}
               </div>
-            </div>
-            <button className="mt-5 w-full btn-glow py-2 rounded-xl font-display font-semibold text-sm text-white bg-gradient-to-r from-fuchsia-600 to-blue-600 neon-border-purple">
-              <span className="relative z-10">Join Challenge</span>
-            </button>
-          </motion.div>
-        ))}
+
+              <div className="text-xs text-white/50">
+                Reward ·{" "}
+                <span className="text-amber-300 font-semibold">
+                  {ch.reward}
+                </span>
+              </div>
+
+              <div className="mt-4">
+                <div className="flex justify-between text-[10px] uppercase tracking-widest text-white/50 mb-1">
+                  <span>Progress</span>
+                  <span className="tabular-nums">{ch.progress}%</span>
+                </div>
+
+                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${ch.progress}%` }}
+                    transition={{
+                      delay: 0.15 + i * 0.1,
+                      duration: 1
+                    }}
+                    className="h-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500"
+                  />
+                </div>
+              </div>
+
+              <button className="mt-5 w-full btn-glow py-2 rounded-xl font-display font-semibold text-sm text-white bg-gradient-to-r from-fuchsia-600 to-blue-600 neon-border-purple">
+                <span className="relative z-10">Join Challenge</span>
+              </button>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center z-20">
+        <div className="px-6 py-3 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white font-display text-xl">
+          Coming Soon 
+        </div>
       </div>
     </div>
   )
 }
-
 function SectionHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="flex items-center gap-3 mb-5">
