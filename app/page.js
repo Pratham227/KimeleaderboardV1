@@ -848,7 +848,7 @@ function LeaderboardTable({ rows, onSnap }) {
           <motion.div key={c.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.025 }}
             className="row-hover grid grid-cols-[70px_1fr_110px_110px_100px_130px_120px_60px] gap-3 px-5 py-4 items-center text-sm transition-all">
             <div className="flex items-center gap-2">
-              <div className="font-display font-black text-lg text-white/80 w-8">#{c.displayRank + 3}</div>
+              <div className="font-display font-black text-lg text-white/80 w-8">##{i + 4}</div>
               <MovementArrow m={c.movement} />
             </div>
             <div className="flex items-center gap-3 min-w-0">
