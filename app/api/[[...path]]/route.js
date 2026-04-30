@@ -439,9 +439,9 @@ async function handleRoute(request, { params }) {
           message: 'Leaderboard updated successfully',
           data: {
             email,
-            admissions: updated.admissions,
-            revenue: updated.revenue,
-            points
+            admissions: existing.monthly.admissions,
+            revenue: existing.monthly.revenue,
+            points: existing.monthly.points,
           }
         })
       )
