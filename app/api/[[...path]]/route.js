@@ -390,6 +390,7 @@ async function handleRoute(request, { params }) {
 
       if (!existing) {
         existing = {
+          email: email,
           weekly: { admissions: 0, revenue: 0, points: 0 },
           monthly: { admissions: 0, revenue: 0, points: 0 },
           quarterly: { admissions: 0, revenue: 0, points: 0 },
@@ -397,15 +398,15 @@ async function handleRoute(request, { params }) {
        }
       }
 
-      if (!existing.updatedAt || !isSameWeek(existing.updatedAt, now)) {
+      if (!existing.weekly) {
          existing.weekly = { admissions: 0, revenue: 0, points: 0 }
       }
 
-      if (!existing.updatedAt || !isSameMonth(existing.updatedAt, now)) {
+      if (!existing.monthly) {
          existing.monthly = { admissions: 0, revenue: 0, points: 0 }
       }
 
-      if (!existing.updatedAt || !isSameQuarter(existing.updatedAt, now)) {
+      if (!existing.quarterly) {
          existing.quarterly = { admissions: 0, revenue: 0, points: 0 }
       }
 
@@ -427,7 +428,7 @@ async function handleRoute(request, { params }) {
       existing.updatedAt = now
 
       await db.collection('leaderboard_stats').updateOne(
-        { email },
+        { email: email},
         { $set: existing },
         { upsert: true }
       )
