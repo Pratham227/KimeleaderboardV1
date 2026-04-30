@@ -386,9 +386,15 @@ function DashboardView({ user, onLogout }) {
 
   const roleCounts = useMemo(() => {
     const counts = { King: 0, Prince: 0, Warrior: 0 }
-    COUNSELLORS.forEach(c => { counts[c.role] = (counts[c.role] || 0) + 1 })
+
+    COUNSELLORS.forEach(c => {
+      if (c.role === "King") counts.King++
+      else if (c.role === "Prince") counts.Prince++
+      else if (c.role === "Warrior") counts.Warrior++
+    })
+
     return counts
-  }, [])
+  }, [COUNSELLORS])  
 
   return (
     <div className="min-h-screen bg-aurora relative overflow-hidden">
