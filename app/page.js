@@ -352,12 +352,8 @@ function DashboardView({ user, onLogout }) {
     return [...filtered]
       .map(c => ({
         ...c,
-        displayPoints:
-          period === 'Weekly'
-            ? c.weekly?.points || 0
-            : period === 'Monthly'
-            ? c.monthly?.points || 0
-            : c.quarterly?.points || 0,
+        displayPoints: c.points || 0,
+          
       }))
       .sort((a, b) => b.displayPoints - a.displayPoints)
       .map((c, i) => ({ ...c, displayRank: i + 1 }))
