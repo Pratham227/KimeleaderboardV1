@@ -245,12 +245,14 @@ async function handleRoute(request, { params }) {
     }
     // ---------------- LEADERBOARD ----------------
     if (route === '/leaderboard' && method === 'GET') {
-
+      const { searchParams } = new URL(request.url)
+      const period = searchParams.get('period') || 'Monthly'
   // 1. Fetch live stats from MongoDB
       const stats = await db
         .collection('leaderboard_stats')
         .find({})
-        .toArray()
+        .toArray() 
+      
 
   // 2. Convert DB rows into fast lookup map
       const statsMap = {}
@@ -266,8 +268,14 @@ async function handleRoute(request, { params }) {
 
          const live = statsMap[emp.email.toLowerCase()] || {}
 
-         const admissions = Number(live.admissions || 0)
-         const revenue = Number(live.revenue || 0)
+         let statsData
+
+         if (period === 'Weekly') statsData = live.weekly || {}
+         else if (period === 'Monthly') statsData = live.monthly || {}
+         else statsData = live.quarterly || {}
+
+         const admissions = Number(statsData.admissions || 0)
+         const revenue = Number(statsData.revenue || 0)
 
          const points =
           admissions * 100 +
@@ -359,38 +367,69 @@ async function handleRoute(request, { params }) {
 
       // Points Formula
       // Add new values to previous values
-      await db.collection('leaderboard_stats').updateOne(
-        { email: email.toLowerCase() },
-        {
-          $inc: {
-            admissions: totalAdmissions,
-            revenue: revenue
-          },
-          $set: {
-            email: email.toLowerCase(),
-            name: employee.name,
-            branch: employee.branch,
-            lead: employee.lead,
-           updatedAt: new Date()
-         }
-        },
-      { upsert: true }
-      )
+      const now = new Date()
 
-// Get latest row
-      const updated = await db.collection('leaderboard_stats').findOne({ email })
+      const isSameWeek = (d1, d2) => {
+        const onejan = new Date(d1.getFullYear(), 0, 1)
+        const week1 = Math.ceil((((d1 - onejan) / 86400000) + onejan.getDay() + 1) / 7)
+        const week2 = Math.ceil((((d2 - onejan) / 86400000) + onejan.getDay() + 1) / 7)
+        return week1 === week2 && d1.getFullYear() === d2.getFullYear()
+      }
 
-// Recalculate total points
-      const points =
-         Number(updated.admissions || 0) * 100 +
-         Math.floor(Number(updated.revenue || 0) / 1000)
+      const isSameMonth = (d1, d2) =>
+        d1.getMonth() === d2.getMonth() &&
+        d1.getFullYear() === d2.getFullYear()
 
-// Save points
+      const getQuarter = d => Math.floor(d.getMonth() / 3)
+
+      const isSameQuarter = (d1, d2) =>
+        getQuarter(d1) === getQuarter(d2) &&
+        d1.getFullYear() === d2.getFullYear()
+
+      let existing = await db.collection('leaderboard_stats').findOne({ email })
+
+      if (!existing) {
+        existing = {
+          weekly: { admissions: 0, revenue: 0, points: 0 },
+          monthly: { admissions: 0, revenue: 0, points: 0 },
+          quarterly: { admissions: 0, revenue: 0, points: 0 },
+          updatedAt: now
+       }
+      }
+
+      if (!existing.updatedAt || !isSameWeek(existing.updatedAt, now)) {
+         existing.weekly = { admissions: 0, revenue: 0, points: 0 }
+      }
+
+      if (!existing.updatedAt || !isSameMonth(existing.updatedAt, now)) {
+         existing.monthly = { admissions: 0, revenue: 0, points: 0 }
+      }
+
+      if (!existing.updatedAt || !isSameQuarter(existing.updatedAt, now)) {
+         existing.quarterly = { admissions: 0, revenue: 0, points: 0 }
+      }
+
+      existing.weekly.admissions += totalAdmissions
+      existing.weekly.revenue += revenue
+
+      existing.monthly.admissions += totalAdmissions
+      existing.monthly.revenue += revenue
+
+      existing.quarterly.admissions += totalAdmissions
+      existing.quarterly.revenue += revenue
+
+      const calcPoints = (a, r) => Math.floor(r / 1000) + a * 100
+
+      existing.weekly.points = calcPoints(existing.weekly.admissions, existing.weekly.revenue)
+      existing.monthly.points = calcPoints(existing.monthly.admissions, existing.monthly.revenue)
+      existing.quarterly.points = calcPoints(existing.quarterly.admissions, existing.quarterly.revenue)
+
+      existing.updatedAt = now
+
       await db.collection('leaderboard_stats').updateOne(
         { email },
-        {
-          $set: { points }
-        }
+        { $set: existing },
+        { upsert: true }
       )
        
 

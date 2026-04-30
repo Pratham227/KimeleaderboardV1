@@ -348,7 +348,20 @@ function DashboardView({ user, onLogout }) {
       .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
   , [branch, lead, search, category])
 
-  const sorted = useMemo(() => [...filtered].sort((a,b) => b.points - a.points).map((c, i) => ({ ...c, displayRank: i + 1 })), [filtered])
+  const sorted = useMemo(() => {
+    return [...filtered]
+      .map(c => ({
+        ...c,
+        displayPoints:
+          period === 'Weekly'
+            ? c.weekly?.points || 0
+            : period === 'Monthly'
+            ? c.monthly?.points || 0
+            : c.quarterly?.points || 0,
+      }))
+      .sort((a, b) => b.displayPoints - a.displayPoints)
+      .map((c, i) => ({ ...c, displayRank: i + 1 }))
+   }, [filtered, period])
   const top3 = sorted.slice(0, 3)
   const rest = sorted.length > 3 ? sorted.slice(3) : sorted
 
@@ -715,7 +728,7 @@ function PodiumCard({ user, rank, onSnap }) {
             <div className="text-xs text-white/50">{user.branch} · Led by {user.lead}</div>
           </div>
           <div className="grid grid-cols-3 gap-3 w-full pt-3 border-t border-white/10">
-            <Stat label="Points" value={user.points} format="compact" accent={cfg.txt} />
+            <Stat label="Points" value={user.displayPoints || 0} format="compact" accent={cfg.txt} />
             <Stat label="Revenue" value={user.revenue} format="money" accent={cfg.txt} />
             <Stat label="Adms" value={user.admissions} accent={cfg.txt} />
           </div>
@@ -835,7 +848,7 @@ function RoleBadge({ role }) {
 }
 
 function LeaderboardTable({ rows, onSnap }) {
-  const max = Math.max(...rows.map(r => r.points), 1)
+  const max = Math.max(...rows.map(r => r.displayPoints), 1)
   return (
     <div className="glass-strong rounded-2xl border border-white/10 overflow-hidden">
       <div className="grid grid-cols-[70px_1fr_110px_110px_100px_130px_120px_60px] gap-3 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-white/50 bg-white/5 border-b border-white/10">
@@ -871,9 +884,9 @@ function LeaderboardTable({ rows, onSnap }) {
             <div className="text-right font-display font-semibold tabular-nums text-white">{c.admissions}</div>
             <div className="text-right font-display font-semibold tabular-nums text-emerald-300">₹{(c.revenue / 100000).toFixed(1)}L</div>
             <div className="text-right">
-              <div className="font-display font-bold tabular-nums gradient-text-cyber">{c.points.toLocaleString()}</div>
+              <div className="font-display font-bold tabular-nums gradient-text-cyber">{c.displayPoints.toLocaleString()}</div>
               <div className="mt-1 h-1 w-full rounded-full bg-white/5 overflow-hidden">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${(c.points / max) * 100}%` }} transition={{ delay: 0.1 + i * 0.02, duration: 0.8 }}
+                <motion.div initial={{ width: 0 }} animate={{ width: `${(c.displayPoints / max) * 100}%` }} transition={{ delay: 0.1 + i * 0.02, duration: 0.8 }}
                   className="h-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500" />
               </div>
             </div>
@@ -1098,7 +1111,7 @@ function SnapshotModal({ user, onClose }) {
       link.href = dataUrl
       link.click()
     } catch(e) { console.error(e) }
-    const text = encodeURIComponent(`Check out my rank on KIME Careers Leaderboard!\n\n${user.name} - Rank #${user.rank} - ${user.role}\n${user.points.toLocaleString()} Points | ${(user.revenue/100000).toFixed(1)}L Revenue | ${user.admissions} Admissions`)
+    const text = encodeURIComponent(`Check out my rank on KIME Careers Leaderboard!\n\n${user.name} - Rank #${user.rank} - ${user.role}\n${user.displayPoints.toLocaleString()} Points | ${(user.revenue/100000).toFixed(1)}L Revenue | ${user.admissions} Admissions`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 
@@ -1180,7 +1193,7 @@ function SnapshotModal({ user, onClose }) {
 
               <div className="mt-6 md:mt-7 grid grid-cols-3 gap-2 md:gap-3">
                 {[
-                  { label: 'Points',     value: user.points.toLocaleString(), color: 'gradient-text-cyber' },
+                  { label: 'Points',     value: user.displayPoints.toLocaleString(), color: 'gradient-text-cyber' },
                   { label: 'Revenue',    value: `₹${(user.revenue/100000).toFixed(1)}L`, color: 'gradient-text-gold' },
                   { label: 'Admissions', value: user.admissions, color: 'text-white' },
                 ].map(s => (
