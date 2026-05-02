@@ -284,7 +284,7 @@ const roleConfig = {
 
 function DashboardView({ user, onLogout }) {
   const [COUNSELLORS, setCounsellors] = useState([])
-
+  const [period, setPeriod] = useState('Weekly')
   useEffect(() => {
     loadLeaderboard()
 
@@ -293,11 +293,11 @@ function DashboardView({ user, onLogout }) {
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [period])
 
   const loadLeaderboard = async () => {
      try {
-       const res = await fetch('/api/leaderboard')
+       const res = await fetch(`/api/leaderboard?period=${period}`)
        const data = await res.json()
 
        if (data.ok) {
@@ -307,7 +307,7 @@ function DashboardView({ user, onLogout }) {
       console.log('Leaderboard fetch failed')
      }
   } 
-  const [period, setPeriod] = useState('Weekly')
+  
   const [branch, setBranch] = useState('All')
   const [lead, setLead] = useState('All')
   const [search, setSearch] = useState('')
@@ -357,7 +357,7 @@ function DashboardView({ user, onLogout }) {
       }))
       .sort((a, b) => b.displayPoints - a.displayPoints)
       .map((c, i) => ({ ...c, displayRank: i + 1 }))
-   }, [filtered, period])
+   }, [filtered])
   const top3 = sorted.slice(0, 3)
   const rest = sorted.length > 3 ? sorted.slice(3) : sorted
 

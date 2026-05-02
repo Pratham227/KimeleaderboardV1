@@ -14,6 +14,13 @@ import {
 let client
 let db
 
+function getWeekNumber(date) {
+  const temp = new Date(date)
+  temp.setHours(0,0,0,0)
+  temp.setDate(temp.getDate() + 4 - (temp.getDay() || 7))
+  const yearStart = new Date(temp.getFullYear(),0,1)
+  return Math.ceil((((temp - yearStart) / 86400000) + 1)/7)
+}
 async function connectToMongo() {
   if (!client) {
     client = new MongoClient(process.env.MONGO_URL)
@@ -387,28 +394,56 @@ async function handleRoute(request, { params }) {
         d1.getFullYear() === d2.getFullYear()
 
       let existing = await db.collection('leaderboard_stats').findOne({ email })
+      
 
+      // ✅ STEP 1: SAFE INITIALIZATION
       if (!existing) {
-        existing = {
-          email: email,
-          weekly: { admissions: 0, revenue: 0, points: 0 },
-          monthly: { admissions: 0, revenue: 0, points: 0 },
-          quarterly: { admissions: 0, revenue: 0, points: 0 },
-          updatedAt: now
-       }
+        existing = { email }
       }
 
-      if (!existing.weekly) {
-         existing.weekly = { admissions: 0, revenue: 0, points: 0 }
-      }
+      existing.weekly = existing.weekly || { admissions: 0, revenue: 0, points: 0 }
+      existing.monthly = existing.monthly || { admissions: 0, revenue: 0, points: 0 }
+      existing.quarterly = existing.quarterly || { admissions: 0, revenue: 0, points: 0 }
 
-      if (!existing.monthly) {
-         existing.monthly = { admissions: 0, revenue: 0, points: 0 }
-      }
+        // 🔥 RESET LOGIC (ADD THIS BLOCK HERE)
+      
 
-      if (!existing.quarterly) {
-         existing.quarterly = { admissions: 0, revenue: 0, points: 0 }
-      }
+     const currentWeek = `${now.getFullYear()}-${getWeekNumber(now)}`
+     const currentMonth = `${now.getFullYear()}-${now.getMonth() + 1}`
+     const currentQuarter = `${now.getFullYear()}-${Math.floor(now.getMonth()/3) + 1}`
+
+// Initialize if missing
+     if (!existing.weekKey) existing.weekKey = currentWeek
+     if (!existing.monthKey) existing.monthKey = currentMonth
+     if (!existing.quarterKey) existing.quarterKey = currentQuarter
+
+// 🔥 RESET BASED ON PERIOD CHANGE (NOT TIME)
+     if (existing.weekKey !== currentWeek) {
+      existing.weekly = { admissions: 0, revenue: 0, points: 0 }
+      existing.weekKey = currentWeek
+     }
+
+    if (existing.monthKey !== currentMonth) {
+      existing.monthly = { admissions: 0, revenue: 0, points: 0 }
+      existing.monthKey = currentMonth
+    }
+
+    // Only reset quarterly when NEW quarter starts
+    if (!existing.quarterKey) {
+      existing.quarterKey = currentQuarter
+    }
+
+// reset ONLY when quarter actually changes
+    if (existing.quarterKey !== currentQuarter) {
+      existing.quarterly = { admissions: 0, revenue: 0, points: 0 }
+      existing.quarterKey = currentQuarter
+    }
+
+
+      
+      
+
+      
 
       existing.weekly.admissions += totalAdmissions
       existing.weekly.revenue += revenue
