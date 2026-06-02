@@ -376,6 +376,11 @@ async function handleRoute(request, { params }) {
       // Add new values to previous values
       const now = new Date()
 
+      const admissionDate = body.admissionDate
+      const effectiveDate = admissionDate
+      ? new Date(admissionDate)
+      : now
+
       const isSameWeek = (d1, d2) => {
         const onejan = new Date(d1.getFullYear(), 0, 1)
         const week1 = Math.ceil((((d1 - onejan) / 86400000) + onejan.getDay() + 1) / 7)
@@ -408,9 +413,14 @@ async function handleRoute(request, { params }) {
         // 🔥 RESET LOGIC (ADD THIS BLOCK HERE)
       
 
-     const currentWeek = `${now.getFullYear()}-${getWeekNumber(now)}`
-     const currentMonth = `${now.getFullYear()}-${now.getMonth() + 1}`
-     const currentQuarter = `${now.getFullYear()}-${Math.floor(now.getMonth()/3) + 1}`
+     const currentWeek =
+     `${effectiveDate.getFullYear()}-${getWeekNumber(effectiveDate)}`
+
+     const currentMonth =
+      `${effectiveDate.getFullYear()}-${effectiveDate.getMonth() + 1}`
+
+     const currentQuarter =
+      `${effectiveDate.getFullYear()}-${Math.floor(effectiveDate.getMonth()/3) + 1}`
 
 // Initialize if missing
      if (!existing.weekKey) existing.weekKey = currentWeek

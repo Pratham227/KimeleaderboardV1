@@ -284,7 +284,7 @@ const roleConfig = {
 
 function DashboardView({ user, onLogout }) {
   const [COUNSELLORS, setCounsellors] = useState([])
-  const [period, setPeriod] = useState('Weekly')
+  const [period, setPeriod] = useState('Monthly')
   useEffect(() => {
     loadLeaderboard()
 
