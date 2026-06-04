@@ -301,6 +301,7 @@ function DashboardView({ user, onLogout }) {
        const data = await res.json()
 
        if (data.ok) {
+        console.log("API DATA:", data.data)
         setCounsellors(data.data)
       }
      } catch (err) {
@@ -346,7 +347,7 @@ function DashboardView({ user, onLogout }) {
       .filter(c => lead === 'All' || c.lead === lead)
       .filter(c => !category || c.role === category)
       .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
-  , [branch, lead, search, category])
+  , [COUNSELLORS, branch, lead, search, category])
 
   const sorted = useMemo(() => {
     return [...filtered]
@@ -543,7 +544,9 @@ function DashboardView({ user, onLogout }) {
           </div>
           <div className="flex items-center gap-1.5 text-xs">
             <span className="text-white/50">Showing</span>
-            <span className="font-display font-bold gradient-text-cyber">{sorted.length}</span>
+            <span className="font-display font-bold gradient-text-cyber">
+              {sorted.length}
+            </span>
             <span className="text-white/50">warriors</span>
           </div>
         </section>
