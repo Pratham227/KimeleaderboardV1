@@ -14,6 +14,8 @@ import {
 let client
 let db
 
+
+
 function getWeekNumber(date) {
   const temp = new Date(date)
   temp.setHours(0,0,0,0)

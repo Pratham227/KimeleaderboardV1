@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 let client
 let db
 
+
 async function connectToMongo() {
   if (!client) {
     client = new MongoClient(process.env.MONGO_URL)
@@ -13,7 +14,16 @@ async function connectToMongo() {
   return db
 }
 
-export async function GET() {
+export async function GET(request) {
+
+  const secret = new URL(request.url).searchParams.get("secret")
+
+  if (secret !== process.env.RESET_SECRET) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 }
+    )
+  }
   const db = await connectToMongo()
 
   await db.collection('leaderboard_stats').updateMany(
