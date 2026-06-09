@@ -412,13 +412,24 @@ function DashboardView({ user, onLogout }) {
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'leaderboard', label: 'Leaderboard', icon: BarChart3 },
-              { id: 'counsellors', label: 'Counsellors', icon: Users },
+              { id: 'worldcup', label: 'World Cup 26', icon: Trophy },
               { id: 'challenges', label: 'Challenges', icon: Target },
               { id: 'rewards', label: 'Rewards', icon: Gift },
             ].map(n => {
               const active = tab === n.id
               return (
-                <button key={n.id} onClick={() => setTab(n.id)}
+                <button 
+                  key={n.id} 
+                  onClick={() => {
+                    if (n.id === 'worldcup') {
+                      window.open(
+                       'https://kimeedu.co.in/worldcupsales',
+                       '_blank'
+                      )
+                      return
+                     }
+                    setTab(n.id)}
+                  }
                   className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition flex items-center gap-1.5 ${active ? 'text-white' : 'text-white/60 hover:text-white'}`}>
                   {active && (
                     <motion.span layoutId="navpill" className="absolute inset-0 rounded-full bg-gradient-to-r from-fuchsia-600/70 to-blue-600/70 neon-border-purple" />
