@@ -287,7 +287,7 @@ async function handleRoute(request, { params }) {
          const revenue = Number(statsData.revenue || 0)
 
          const points =
-          admissions * 150 +
+          admissions * 100 +
           Math.floor(revenue / 1000)
 
          return {
