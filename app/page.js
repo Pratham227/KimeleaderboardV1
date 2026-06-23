@@ -285,11 +285,18 @@ const roleConfig = {
 function DashboardView({ user, onLogout }) {
   const [COUNSELLORS, setCounsellors] = useState([])
   const [period, setPeriod] = useState('Monthly')
+  const [challengeLeaders, setChallengeLeaders] = useState({
+  weekly: null,
+  monthly: null,
+  quarterly: null
+  })
   useEffect(() => {
     loadLeaderboard()
+    loadChallenges()
 
     const interval = setInterval(() => {
       loadLeaderboard()
+      loadChallenges()
     }, 10000)
 
     return () => clearInterval(interval)
@@ -308,6 +315,28 @@ function DashboardView({ user, onLogout }) {
       console.log('Leaderboard fetch failed')
      }
   } 
+  const loadChallenges = async () => {
+   try {
+    const [weeklyRes, monthlyRes, quarterlyRes] =
+      await Promise.all([
+        fetch('/api/leaderboard?period=Weekly'),
+        fetch('/api/leaderboard?period=Monthly'),
+        fetch('/api/leaderboard?period=Quarterly')
+      ])
+
+    const weekly = await weeklyRes.json()
+    const monthly = await monthlyRes.json()
+    const quarterly = await quarterlyRes.json()
+
+    setChallengeLeaders({
+      weekly: weekly.data?.[0],
+      monthly: monthly.data?.[0],
+      quarterly: quarterly.data?.[0]
+    })
+  } catch (err) {
+    console.log('Challenge fetch failed')
+  }
+}
   
   const [branch, setBranch] = useState('All')
   const [lead, setLead] = useState('All')
@@ -576,7 +605,10 @@ function DashboardView({ user, onLogout }) {
           )}
           {tab === 'challenges' && (
             <motion.div key="ch" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ChallengesSection />
+              <ChallengesSection
+                leaders={challengeLeaders}
+                currentUser={currentUser}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -999,77 +1031,113 @@ function RewardsSection() {
   )
 }
 
-function ChallengesSection() {
+function ChallengesSection({ leaders, currentUser }) {
+
+  const weeklyLeader = leaders?.weekly
+  const monthlyLeader = leaders?.monthly
+  const quarterlyLeader = leaders?.quarterly
+
+  const cards = [
+    {
+      title: "🚀 Podium Rush",
+      leader: weeklyLeader,
+      type: "points",
+      period: "Weekly"
+    },
+    {
+      title: "👑 Podium Topper",
+      leader: monthlyLeader,
+      type: "points",
+      period: "Monthly"
+    },
+    {
+      title: "🏆 Ballon d'Or",
+      leader: quarterlyLeader,
+      type: "points",
+      period: "Quarterly"
+    }
+  ]
+
   return (
-    <div className="relative">
+    <div>
+      <SectionHeader
+        icon={Target}
+        title="Active Challenges"
+        subtitle="Beat the current leaders and claim glory"
+      />
 
-      {/* Main Content */}
-      <div className="pointer-events-none select-none blur-sm opacity-60">
-        <SectionHeader
-          icon={Target}
-          title="Active Challenges"
-          subtitle="Smash these to supercharge your climb"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {CHALLENGES.map((ch, i) => (
+        {cards.map((card, i) => {
+
+          if (!card.leader) return null
+
+          const needed =
+            Math.max(
+              0,
+              card.leader.points -
+              (currentUser?.points || 0) +
+              1
+            )
+
+          return (
             <motion.div
-              key={ch.title}
+              key={card.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="glass-strong rounded-2xl p-6 border border-white/10 neon-border-blue"
+              transition={{ delay: i * 0.1 }}
+              className="glass-strong rounded-2xl p-6 border border-white/10 neon-border-purple"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-widest text-sky-300 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30">
-                  {ch.tier}
-                </span>
-                <span className="text-[10px] text-white/50">{ch.deadline}</span>
+
+              <div className="text-xs uppercase tracking-widest text-fuchsia-300">
+                {card.period}
               </div>
 
-              <div className="font-display font-bold text-lg text-white mt-3">
-                {ch.title}
-              </div>
+              <h3 className="font-display text-xl font-bold text-white mt-2">
+                {card.title}
+              </h3>
 
-              <div className="text-xs text-white/50">
-                Reward ·{" "}
-                <span className="text-amber-300 font-semibold">
-                  {ch.reward}
-                </span>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between text-[10px] uppercase tracking-widest text-white/50 mb-1">
-                  <span>Progress</span>
-                  <span className="tabular-nums">{ch.progress}%</span>
+              <div className="mt-5">
+                <div className="text-white/50 text-xs">
+                  Current Leader
                 </div>
 
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${ch.progress}%` }}
-                    transition={{
-                      delay: 0.15 + i * 0.1,
-                      duration: 1
-                    }}
-                    className="h-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-blue-500"
-                  />
+                <div className="text-lg font-bold text-white">
+                  {card.leader.name}
+                </div>
+
+                <div className="gradient-text-gold font-display text-2xl font-black">
+                  {card.leader.points}
                 </div>
               </div>
 
-              <button className="mt-5 w-full btn-glow py-2 rounded-xl font-display font-semibold text-sm text-white bg-gradient-to-r from-fuchsia-600 to-blue-600 neon-border-purple">
-                <span className="relative z-10">Join Challenge</span>
-              </button>
+              <div className="mt-5 border-t border-white/10 pt-4">
+
+                <div className="text-xs text-white/50">
+                  Your Rank
+                </div>
+
+                <div className="text-xl font-bold text-white">
+                  #{currentUser?.rank || "-"}
+                </div>
+
+                <div className="mt-3 text-xs text-white/50">
+                  Need
+                </div>
+
+                <div className="text-lg font-bold text-emerald-400">
+                  {needed} Points
+                </div>
+
+                <div className="text-xs text-white/50">
+                  to become #1
+                </div>
+
+              </div>
+
             </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Overlay */}
-      <div className="absolute inset-0 flex items-center justify-center z-20">
-        <div className="px-6 py-3 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white font-display text-xl">
-          Coming Soon 
-        </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -1081,13 +1149,16 @@ function SectionHeader({ icon: Icon, title, subtitle }) {
         <Icon size={18} className="text-white" />
       </div>
       <div>
-        <h2 className="font-display font-bold text-xl text-white">{title}</h2>
-        <p className="text-xs text-white/50">{subtitle}</p>
+        <h2 className="font-display font-bold text-xl text-white">
+          {title}
+        </h2>
+        <p className="text-xs text-white/50">
+          {subtitle}
+        </p>
       </div>
     </div>
   )
 }
-
 /* ------------- SNAPSHOT MODAL (PUBG-STYLE) ------------- */
 function SnapshotModal({ user, onClose }) {
   const cardRef = useRef(null)
