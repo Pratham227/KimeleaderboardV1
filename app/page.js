@@ -329,9 +329,9 @@ function DashboardView({ user, onLogout }) {
     const quarterly = await quarterlyRes.json()
 
     setChallengeLeaders({
-      weekly: weekly.data?.[0],
-      monthly: monthly.data?.[0],
-      quarterly: quarterly.data?.[0]
+      weekly: weekly.data || [],
+      monthly: monthly.data || [],
+      quarterly: quarterly.data || []
     })
   } catch (err) {
     console.log('Challenge fetch failed')
@@ -1033,27 +1033,45 @@ function RewardsSection() {
 
 function ChallengesSection({ leaders, currentUser }) {
 
-  const weeklyLeader = leaders?.weekly
-  const monthlyLeader = leaders?.monthly
-  const quarterlyLeader = leaders?.quarterly
+  const weeklyLeader = leaders?.weekly?.[0]
+  const monthlyLeader = leaders?.monthly?.[0]
+  const quarterlyLeader = leaders?.quarterly?.[0]
+
+  const weeklyUser = leaders?.weekly?.find(
+    c =>
+      c.email?.toLowerCase() ===
+      currentUser?.email?.toLowerCase()
+  )
+
+  const monthlyUser = leaders?.monthly?.find(
+    c =>
+      c.email?.toLowerCase() ===
+      currentUser?.email?.toLowerCase()
+  )
+
+  const quarterlyUser = leaders?.quarterly?.find(
+    c =>
+      c.email?.toLowerCase() ===
+      currentUser?.email?.toLowerCase()
+  )
 
   const cards = [
     {
       title: "🚀 Podium Rush",
       leader: weeklyLeader,
-      type: "points",
+      user: weeklyUser,
       period: "Weekly"
     },
     {
       title: "👑 Podium Topper",
       leader: monthlyLeader,
-      type: "points",
+      user: monthlyUser,
       period: "Monthly"
     },
     {
       title: "🏆 Ballon d'Or",
       leader: quarterlyLeader,
-      type: "points",
+      user: quarterlyUser,
       period: "Quarterly"
     }
   ]
@@ -1075,9 +1093,8 @@ function ChallengesSection({ leaders, currentUser }) {
           const needed =
             Math.max(
               0,
-              card.leader.points -
-              (currentUser?.points || 0) +
-              1
+              (card.leader?.points || 0) -
+              (card.user?.points || 0)
             )
 
           return (
@@ -1118,7 +1135,7 @@ function ChallengesSection({ leaders, currentUser }) {
                 </div>
 
                 <div className="text-xl font-bold text-white">
-                  #{currentUser?.rank || "-"}
+                  #{card.user?.rank || "-"}
                 </div>
 
                 <div className="mt-3 text-xs text-white/50">
