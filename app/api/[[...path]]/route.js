@@ -9,11 +9,9 @@ import {
   categoryForEmployee,
   computeTenure
 } from '@/lib/employees'
-
 // MongoDB connection (lazy)
 let client
 let db
-
 
 
 function getWeekNumber(date) {
@@ -279,9 +277,20 @@ async function handleRoute(request, { params }) {
 
          let statsData
 
-         if (period === 'Weekly') statsData = live.weekly || {}
-         else if (period === 'Monthly') statsData = live.monthly || {}
-         else statsData = live.quarterly || {}
+         if (period === 'Weekly')
+           statsData = live.weekly || {}
+
+         else if (period === 'Monthly')
+           statsData = live.monthly || {}
+
+         else if (period === 'Quarterly')
+           statsData = live.quarterly || {}
+
+         else if (period === 'Lifetime')
+          statsData = live.lifetime || {}
+
+         else
+           statsData = live.monthly || {}
 
          const admissions = Number(statsData.admissions || 0)
          const revenue = Number(statsData.revenue || 0)
@@ -411,6 +420,7 @@ async function handleRoute(request, { params }) {
       existing.weekly = existing.weekly || { admissions: 0, revenue: 0, points: 0 }
       existing.monthly = existing.monthly || { admissions: 0, revenue: 0, points: 0 }
       existing.quarterly = existing.quarterly || { admissions: 0, revenue: 0, points: 0 }
+      existing.lifetime = existing.lifetime || { admissions: 0, revenue: 0, points: 0}
 
         // 🔥 RESET LOGIC (ADD THIS BLOCK HERE)
       
@@ -466,12 +476,15 @@ async function handleRoute(request, { params }) {
       existing.quarterly.admissions += totalAdmissions
       existing.quarterly.revenue += revenue
 
+      existing.lifetime.admissions += totalAdmissions
+      existing.lifetime.revenue += revenue
+
       const calcPoints = (a, r) => Math.floor(r / 1000) + a * 100
 
       existing.weekly.points = calcPoints(existing.weekly.admissions, existing.weekly.revenue)
       existing.monthly.points = calcPoints(existing.monthly.admissions, existing.monthly.revenue)
       existing.quarterly.points = calcPoints(existing.quarterly.admissions, existing.quarterly.revenue)
-
+      existing.lifetime.points = calcPoints(existing.lifetime.admissions, existing.lifetime.revenue)
       existing.updatedAt = now
 
       await db.collection('leaderboard_stats').updateOne(
