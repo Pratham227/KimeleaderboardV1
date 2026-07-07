@@ -162,6 +162,7 @@ async function handleRoute(request, { params }) {
             name: employee.name,
             email: employee.email,
             branch: employee.branch,
+            gender: employee.gender,
             lead: employee.lead,
             designation: employee.designation,
             tenure: computeTenure(employee),
@@ -302,6 +303,7 @@ async function handleRoute(request, { params }) {
          return {
           name: emp.name,
           email: emp.email,
+          gender: emp.gender,
           branch: emp.branch || '',
           lead: emp.lead || '',
           designation: emp.designation || '',
