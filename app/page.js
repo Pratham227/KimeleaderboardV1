@@ -14,6 +14,7 @@ import Particles from '@/components/leaderboard/Particles'
 import Counter from '@/components/leaderboard/Counter'
 import { BRANCHES, TEAM_LEADS, REWARDS, CHALLENGES } from '@/lib/leaderboard-data'
 import { getSortedRowModel } from '@tanstack/react-table'
+import ProfileSection from '@/components/leaderboard/profile/ProfileSection'
 
 /* ------------- LOGO ------------- */
 const Logo = ({ size = 40 }) => (
@@ -290,13 +291,16 @@ function DashboardView({ user, onLogout }) {
   monthly: null,
   quarterly: null
   })
+  const [lifetimeData, setLifetimeData] = useState(null)
   useEffect(() => {
     loadLeaderboard()
     loadChallenges()
+    loadLifetime()
 
     const interval = setInterval(() => {
       loadLeaderboard()
       loadChallenges()
+      loadLifetime()
     }, 10000)
 
     return () => clearInterval(interval)
@@ -335,8 +339,30 @@ function DashboardView({ user, onLogout }) {
     })
   } catch (err) {
     console.log('Challenge fetch failed')
+    }
   }
-}
+  const loadLifetime = async () => {
+   try {
+     const res = await fetch(
+      'https://leaderboard.kimeedu.co.in/api/leaderboard?period=Lifetime'
+     )
+
+     const data = await res.json()
+
+     if (data.ok) {
+      const me = data.data.find(
+        x =>
+          x.email?.toLowerCase() ===
+          user?.email?.toLowerCase()
+      )
+
+      setLifetimeData(me)
+     }
+    } catch (err) {
+     console.log('Lifetime fetch failed')
+    }
+  
+  }
   
   const [branch, setBranch] = useState('All')
   const [lead, setLead] = useState('All')
@@ -444,6 +470,7 @@ function DashboardView({ user, onLogout }) {
               { id: 'worldcup', label: 'World Cup 26', icon: Trophy },
               { id: 'challenges', label: 'Challenges', icon: Target },
               { id: 'rewards', label: 'Rewards', icon: Gift },
+              
             ].map(n => {
               const active = tab === n.id
               return (
@@ -479,7 +506,10 @@ function DashboardView({ user, onLogout }) {
               <Bell size={16} className="text-white/80" />
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-fuchsia-500 to-pink-500 ring-2 ring-[#05050f] animate-pulse" />
             </button>
-            <div className="hidden sm:flex items-center gap-2 glass rounded-full pl-1 pr-3 py-1">
+            <button
+              onClick={() => setTab('profile')}
+              className="hidden sm:flex items-center gap-2 glass rounded-full pl-1 pr-3 py-1 hover:scale-105 transition-all cursor-pointer"
+            >
               <div className={`w-8 h-8 rounded-full grid place-items-center font-display font-bold text-xs ${
                 isAdmin
                   ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 text-[#05050f]'
@@ -500,7 +530,7 @@ function DashboardView({ user, onLogout }) {
                   {isAdmin ? 'System Administrator' : `Rank #${currentUser.rank} · ${currentUser.role}`}
                 </div>
               </div>
-            </div>
+            </button>
             <button onClick={onLogout} className="p-2 rounded-xl glass hover:bg-white/10" title="Logout">
               <LogOut size={16} className="text-white/70" />
             </button>
@@ -524,94 +554,149 @@ function DashboardView({ user, onLogout }) {
         </section>
 
         {/* TOP 3 PODIUM */}
-        <Podium top3={top3} onSnap={setSnapUser} />
+        <AnimatePresence mode="wait">
 
-        {/* PERIOD TABS */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="inline-flex p-1 rounded-full glass border border-white/10">
-            {['Weekly', 'Monthly', 'Quarterly'].map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`relative px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition ${period === p ? 'text-white' : 'text-white/50 hover:text-white/80'}`}>
-                {period === p && <motion.span layoutId="periodpill" className="absolute inset-0 rounded-full bg-gradient-to-r from-fuchsia-600 to-blue-600 neon-border-purple" />}
-                <span className="relative">{p}</span>
-              </button>
+          {(tab === 'leaderboard' || tab === 'home' || tab === 'counsellors') && (
+            <motion.div
+              key="leaderboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+
+      
+              <Podium top3={top3} onSnap={setSnapUser} />
+
+      {/* PERIOD TABS */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="inline-flex p-1 rounded-full glass border border-white/10">
+                  {['Weekly', 'Monthly', 'Quarterly'].map(p => (
+                   <button
+                     key={p}
+                     onClick={() => setPeriod(p)}
+                     className={`relative px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition ${
+                     period === p
+                       ? 'text-white'
+                       : 'text-white/50 hover:text-white/80'
+                     }`}
+                    >
+                     {period === p && (
+                       <motion.span
+                         layoutId="periodpill"
+                         className="absolute inset-0 rounded-full bg-gradient-to-r from-fuchsia-600 to-blue-600 neon-border-purple"
+                       />
+                     )}
+                     <span className="relative">{p}</span>
+                   </button>
+                  ))}
+               </div>
+
+               <div className="flex items-center gap-2 text-xs text-white/50">
+                 <TrendingUp size={14} className="text-emerald-400" />
+                 <span>Leaderboard updates every 60 seconds</span>
+               </div>
+             </div>
+
+      {/* ROLE STATS */}
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+               { role: 'King', desc: 'Reigning closers (>6 mo tenure)' },
+               { role: 'Prince', desc: 'Royal risers (>3-6 mo tenure)' },
+               { role: 'Warrior', desc: 'Battle ready (0-3 mo tenure)' },
+              ].map((s, i) => (
+                <RoleCard
+                  key={s.role}
+                  {...s}
+                  count={roleCounts[s.role] || 0}
+                  i={i}
+                  active={category === s.role}
+                  onClick={() =>
+                  setCategory(category === s.role ? null : s.role)
+                }
+              />
             ))}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-white/50">
-            <TrendingUp size={14} className="text-emerald-400" />
-            <span>Leaderboard updates every 60 seconds</span>
-          </div>
-        </div>
+           </section>
 
-        {/* ROLE STATS */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { role: 'King',    desc: 'Reigning closers (>6 mo tenure)' },
-            { role: 'Prince',  desc: 'Royal risers (>3-6 mo tenure)' },
-            { role: 'Warrior', desc: 'Battle ready (0-3 mo tenure)' },
-          ].map((s, i) => (
-            <RoleCard key={s.role} {...s} count={roleCounts[s.role] || 0} i={i}
-              active={category === s.role}
-              onClick={() => setCategory(category === s.role ? null : s.role)}
-            />
-          ))}
-        </section>
+      {/* FILTERS */}
+           <section className="glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-white/70 text-xs uppercase tracking-widest">
+                <Filter size={14} /> Filters
+              </div>
 
-        {category && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between glass rounded-xl px-4 py-2.5">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-white/50">Filtering by category:</span>
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-gradient-to-r ${roleConfig[category].color} text-white`}>
-                {roleConfig[category].emoji} {category}
-              </span>
-            </div>
-            <button onClick={() => setCategory(null)} className="text-xs text-fuchsia-400 hover:text-fuchsia-300 inline-flex items-center gap-1">
-              <X size={12} /> Clear
-            </button>
+              <Dropdown
+                label="Branch"
+                value={branch}
+                onChange={setBranch}
+                options={BRANCHES}
+              />
+
+              <Dropdown
+                label="Team Lead"
+                value={lead}
+                onChange={setLead}
+                options={TEAM_LEADS}
+              />
+
+              <div className="flex-1 min-w-[220px] flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                <Search size={14} className="text-white/50" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search counsellor..."
+                  className="flex-1 bg-transparent outline-none text-sm"
+                />
+              </div>
+           </section>
+
+           <LeaderboardTable
+             rows={rest}
+             onSnap={setSnapUser}
+           />
+
+         </motion.div>
+        )}
+
+        {tab === 'challenges' && (
+          <motion.div
+            key="ch"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+           <ChallengesSection
+             leaders={challengeLeaders}
+             currentUser={currentUser}
+           />
+         </motion.div>
+        )}
+
+        {tab === 'rewards' && (
+          <motion.div
+            key="rw"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+         >
+            <RewardsSection />
           </motion.div>
         )}
 
-        {/* FILTERS */}
-        <section className="glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 text-white/70 text-xs uppercase tracking-widest"><Filter size={14} /> Filters</div>
-          <Dropdown label="Branch" value={branch} onChange={setBranch} options={BRANCHES} />
-          <Dropdown label="Team Lead" value={lead} onChange={setLead} options={TEAM_LEADS} />
-          <div className="flex-1 min-w-[220px] flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 focus-within:border-fuchsia-400/60 px-3 py-2">
-            <Search size={14} className="text-white/50" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search counsellor..."
-              className="flex-1 bg-transparent outline-none text-sm placeholder:text-white/30" />
-          </div>
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-white/50">Showing</span>
-            <span className="font-display font-bold gradient-text-cyber">
-              {sorted.length}
-            </span>
-            <span className="text-white/50">warriors</span>
-          </div>
-        </section>
+        {tab === 'profile' && (
+         <motion.div
+           key="profile"
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+          >
+           <ProfileSection
+             currentUser={currentUser}
+             lifetimeData={lifetimeData}
+             setTab={setTab}
+            />
+         </motion.div>
+        )}
 
-        {/* CONTENT BASED ON TAB */}
-        <AnimatePresence mode="wait">
-          {(tab === 'leaderboard' || tab === 'home' || tab === 'counsellors') && (
-            <motion.div key="lb" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <LeaderboardTable rows={rest} onSnap={setSnapUser} />
-            </motion.div>
-          )}
-          {tab === 'rewards' && (
-            <motion.div key="rw" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <RewardsSection />
-            </motion.div>
-          )}
-          {tab === 'challenges' && (
-            <motion.div key="ch" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ChallengesSection
-                leaders={challengeLeaders}
-                currentUser={currentUser}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      </AnimatePresence>
 
         <footer className="py-10 text-center text-xs text-white/40">
           <div className="inline-flex items-center gap-2"><Sparkles size={12} /> Kime Careers · Built for champions · 2025</div>
@@ -622,6 +707,7 @@ function DashboardView({ user, onLogout }) {
     </div>
   )
 }
+
 
 /* ------------- DASHBOARD COMPONENTS ------------- */
 function CountdownCard() {
