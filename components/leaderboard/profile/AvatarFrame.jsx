@@ -7,11 +7,17 @@ export default function AvatarFrame({
   role,
   level = 1
 }) {
-
+  const normalizedGender = String(gender || '')
+    .trim()
+    .toLowerCase()
   const avatar =
-    gender === 'female'
+    normalizedGender === 'female'
       ? '/avatars/female-avatar.png'
       : '/avatars/male-avatar.png'
+  
+  console.log('Avatar gender:', gender)
+  console.log('Normalized gender:', normalizedGender)
+  console.log('Selected avatar:', avatar)
 
   const roleColor =
     role === 'King'

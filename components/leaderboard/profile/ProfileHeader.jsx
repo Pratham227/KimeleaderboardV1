@@ -22,7 +22,7 @@ export default function ProfileHeader({
         <div className="flex justify-center">
 
           <AvatarFrame
-            gender={currentUser?.gender}
+            gender={lifetimeData?.gender || currentUser?.gender}
             role={currentUser?.role}
             level={level}
           />
