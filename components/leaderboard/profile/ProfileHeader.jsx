@@ -1,102 +1,92 @@
 'use client'
 
-import {
-  Crown,
-  Shield,
-  Trophy,
-  Star
-} from 'lucide-react'
+import AvatarFrame from './AvatarFrame'
 
 export default function ProfileHeader({
   currentUser,
   lifetimeData
 }) {
 
-  const isFemale =
-    currentUser?.name?.toLowerCase().includes('isha') ||
-    currentUser?.name?.toLowerCase().includes('shruti') ||
-    currentUser?.name?.toLowerCase().includes('mansi')
+  const level = (lifetimeData?.admissions || 0) + 1
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-fuchsia-500/20 bg-gradient-to-br from-[#0c0f2a] via-[#12081f] to-[#08142f] p-8">
 
+      {/* Background Glow */}
       <div className="absolute top-0 right-0 w-72 h-72 bg-fuchsia-500/20 blur-[120px]" />
+      <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-500/20 blur-[120px]" />
 
-      <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+      <div className="relative z-10 grid lg:grid-cols-[280px_1fr] gap-10 items-center">
 
-        {/* Avatar */}
+        {/* Avatar Section */}
+        <div className="flex justify-center">
 
-        <div className="relative">
-
-          <div className="w-40 h-40 rounded-full bg-gradient-to-br from-fuchsia-500 via-violet-500 to-blue-500 p-1">
-
-            <div className="w-full h-full rounded-full bg-[#05050f] flex items-center justify-center text-6xl">
-              {isFemale ? '👩' : '👨'}
-            </div>
-
-          </div>
-
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-black text-xs font-bold">
-            LEVEL {(lifetimeData?.admissions || 0) + 1}
-          </div>
+          <AvatarFrame
+            gender={currentUser?.gender}
+            role={currentUser?.role}
+            level={level}
+          />
 
         </div>
 
-        {/* User Info */}
+        {/* Right Side */}
+        <div>
 
-        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-3">
 
-          <div className="flex items-center gap-3 flex-wrap">
-
-            <h1 className="text-4xl font-black text-white">
+            <h1 className="text-4xl md:text-5xl font-black text-white">
               {currentUser?.name}
             </h1>
 
-            <div className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500 text-amber-300 text-xs font-bold">
+            <div className="px-4 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-black text-xs font-black uppercase tracking-wider">
               {currentUser?.role}
             </div>
 
           </div>
 
-          <p className="text-white/50 mt-2">
+          <p className="text-white/50 mt-3 text-lg">
             {currentUser?.designation}
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
 
-            <div className="glass rounded-xl p-3">
-              <div className="text-xs text-white/50">
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <div className="text-xs text-white/50 uppercase tracking-wider">
                 Global Rank
               </div>
-              <div className="text-2xl font-black text-amber-300">
+
+              <div className="text-3xl font-black text-amber-300 mt-2">
                 #{lifetimeData?.rank || '-'}
               </div>
             </div>
 
-            <div className="glass rounded-xl p-3">
-              <div className="text-xs text-white/50">
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <div className="text-xs text-white/50 uppercase tracking-wider">
                 Lifetime Points
               </div>
-              <div className="text-2xl font-black gradient-text-cyber">
+
+              <div className="text-3xl font-black gradient-text-cyber mt-2">
                 {lifetimeData?.points || 0}
               </div>
             </div>
 
-            <div className="glass rounded-xl p-3">
-              <div className="text-xs text-white/50">
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <div className="text-xs text-white/50 uppercase tracking-wider">
                 Admissions
               </div>
-              <div className="text-2xl font-black text-emerald-400">
+
+              <div className="text-3xl font-black text-emerald-400 mt-2">
                 {lifetimeData?.admissions || 0}
               </div>
             </div>
 
-            <div className="glass rounded-xl p-3">
-              <div className="text-xs text-white/50">
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <div className="text-xs text-white/50 uppercase tracking-wider">
                 Revenue
               </div>
-              <div className="text-2xl font-black text-fuchsia-300">
-                ₹{((lifetimeData?.revenue || 0)/100000).toFixed(1)}L
+
+              <div className="text-3xl font-black text-fuchsia-300 mt-2">
+                ₹{((lifetimeData?.revenue || 0) / 100000).toFixed(1)}L
               </div>
             </div>
 
@@ -108,4 +98,9 @@ export default function ProfileHeader({
 
     </div>
   )
-}
+} 
+
+
+
+
+

@@ -28,7 +28,7 @@ const Logo = ({ size = 40 }) => (
       />
       <div className="relative w-full h-full rounded-xl bg-gradient-to-br from-white/95 to-white/80 p-1.5 shadow-[0_0_24px_rgba(59,130,246,0.45)] ring-1 ring-white/30 overflow-hidden">
         <img
-          src="https://customer-assets.emergentagent.com/job_neon-ranks/artifacts/78ze56i0_kime-logo.jpg"
+          src="/kimelogo.jpg"
           alt="Kime Careers"
           className="w-full h-full object-contain"
           style={{ mixBlendMode: 'multiply' }}
