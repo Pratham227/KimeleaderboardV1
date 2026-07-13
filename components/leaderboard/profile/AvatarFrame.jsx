@@ -12,7 +12,7 @@ export default function AvatarFrame({
     .toLowerCase()
   const avatar =
     normalizedGender === 'female'
-      ? '/avatars/female-avatar.png'
+      ? '/avatars/female-avtar.png'
       : '/avatars/male-avatar.png'
   
   console.log('Avatar gender:', gender)
