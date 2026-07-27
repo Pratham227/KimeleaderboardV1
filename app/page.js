@@ -1399,15 +1399,33 @@ function RewardsSection() {
 
 function ChallengesSection({ leaders, currentUser }) {
 
-  const weeklyLeader = leaders?.weekly?.[0]
+  
   const monthlyLeader = leaders?.monthly?.[0]
   const quarterlyLeader = leaders?.quarterly?.[0]
 
-  const weeklyUser = leaders?.weekly?.find(
+  const weeklyCategory = [...(leaders?.weekly || [])]
+   .filter(
+     c =>
+       c.role?.toLowerCase() ===
+       currentUser?.role?.toLowerCase()
+    )
+   .sort((a, b) => b.points - a.points)
+
+  const weeklyLeader = weeklyCategory[0]
+
+  const weeklyUser = weeklyCategory.find(
     c =>
-      c.email?.toLowerCase() ===
-      currentUser?.email?.toLowerCase()
+     c.email?.toLowerCase() ===
+     currentUser?.email?.toLowerCase()
   )
+
+// Category Rank
+  const weeklyRank =
+    weeklyCategory.findIndex(
+      c =>
+       c.email?.toLowerCase() ===
+       currentUser?.email?.toLowerCase()
+    ) + 1
 
   const monthlyUser = leaders?.monthly?.find(
     c =>
@@ -1426,18 +1444,21 @@ function ChallengesSection({ leaders, currentUser }) {
       title: "🚀 Podium Rush",
       leader: weeklyLeader,
       user: weeklyUser,
+      rank: weeklyRank,
       period: "Weekly"
     },
     {
       title: "👑 Podium Topper",
       leader: monthlyLeader,
       user: monthlyUser,
+      rank: monthlyUser?.rank,
       period: "Monthly"
     },
     {
       title: "🏆 Ballon d'Or",
       leader: quarterlyLeader,
       user: quarterlyUser,
+      rank: quarterlyUser?.rank,
       period: "Quarterly"
     }
   ]
@@ -1474,7 +1495,14 @@ function ChallengesSection({ leaders, currentUser }) {
 
               <div className="text-xs uppercase tracking-widest text-fuchsia-300">
                 {card.period}
-              </div>
+
+                {card.period === "Weekly" && (
+                  <span className="text-white/40">
+                     {" • "}
+                     {currentUser.role}
+                   </span>
+                 )}
+               </div>
 
               <h3 className="font-display text-xl font-bold text-white mt-2">
                 {card.title}
@@ -1501,7 +1529,7 @@ function ChallengesSection({ leaders, currentUser }) {
                 </div>
 
                 <div className="text-xl font-bold text-white">
-                  #{card.user?.rank || "-"}
+                  #{card.rank || "-"}
                 </div>
 
                 <div className="mt-3 text-xs text-white/50">
@@ -1763,3 +1791,4 @@ function App() {
 }
 
 export default App
+
