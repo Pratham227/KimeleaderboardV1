@@ -1092,11 +1092,27 @@ function RewardsSection() {
 
 
           {/* PRIZE VALUE TOP */}
-          <div className="px-4 py-2 rounded-full border border-amber-400/30 bg-amber-400/10">
+          <div className="flex items-center gap-5">
 
-            <span className="text-xs uppercase tracking-widest text-amber-300 font-black">
-              Gifts Worth {contest.prizeValue}
-            </span>
+            <div className="text-right">
+
+              <div className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-bold">
+                Winner
+              </div>
+
+              <div className="text-lg font-display font-black text-yellow-300">
+                 Suwarnaprabha Dive
+              </div>
+
+            </div>
+  
+            <div className="px-4 py-2 rounded-full border border-amber-400/30 bg-amber-400/10">
+
+              <span className="text-xs uppercase tracking-widest text-amber-300 font-black">
+                Gifts Worth {contest.prizeValue}
+              </span>
+
+            </div>
 
           </div>
 
@@ -1367,23 +1383,37 @@ function RewardsSection() {
 
         {/* ================= BOTTOM MESSAGE ================= */}
 
-        <div className="relative z-10 border-t border-white/10 bg-black/20 px-6 py-4 text-center">
+        <div className="relative z-10 border-t border-white/10 bg-black/20 px-6 py-5">
 
-          <p className="text-xs md:text-sm text-white/45">
+          <p className="text-xs md:text-sm text-center text-white/55">
 
             🎯 Complete
 
             <span className="text-white font-black">
-              {' '}20 admissions{' '}
+              {" "}20 Admissions{" "}
             </span>
 
             to become eligible for
 
             <span className="text-amber-300 font-black">
-              {' '}one reward worth ₹50,000
+              {" "}one reward worth ₹50,000
             </span>
 
-          </p>
+           </p>
+
+          <div className="mt-3 border-t border-white/10 pt-3">
+
+            <p className="text-[11px] text-center text-white/40">
+
+              <span className="text-white/60 font-semibold">
+                Terms & Conditions:
+              </span>
+
+              {" "}Reward eligibility is subject to successful form closure and company verification. Invalid, duplicate or cancelled admissions will not be considered.
+
+            </p>
+
+          </div>
 
         </div>
 
