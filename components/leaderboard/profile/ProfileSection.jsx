@@ -3,7 +3,8 @@
 import ProfileHeader from './ProfileHeader'
 import LifetimeStats from './LifetimeStats'
 import TrophyCabinet from './TrophyCabinet'
-
+import AdmissionClub from './AdmissionClub'
+import RevenueClub from './RevenueClub'
 export default function ProfileSection({
   currentUser,
   lifetimeData,
@@ -31,6 +32,21 @@ export default function ProfileSection({
       <TrophyCabinet
         lifetimeData={lifetimeData}
       />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <AdmissionClub
+
+          lifetimeData={lifetimeData}
+
+         />
+
+        <RevenueClub
+
+            lifetimeData={lifetimeData}
+
+        />
+
+      </div>
 
     </div>
   )

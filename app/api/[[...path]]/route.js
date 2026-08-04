@@ -260,6 +260,18 @@ async function handleRoute(request, { params }) {
         .collection('leaderboard_stats')
         .find({})
         .toArray() 
+      const achievements = await db
+       .collection("profile_achievements")
+       .find({})
+       .toArray()
+
+      const achievementMap = {}
+
+      achievements.forEach(item => {
+
+        achievementMap[item.email.toLowerCase()] = item
+
+      })
       
 
   // 2. Convert DB rows into fast lookup map
@@ -320,8 +332,16 @@ async function handleRoute(request, { params }) {
             .map(x => x[0])
             .join('')
             .toUpperCase()
-            .slice(0, 2)
-         }
+            .slice(0, 2),
+          achievements:
+            achievementMap[emp.email.toLowerCase()] || {
+
+              trophies: {},
+
+              badges: {}
+
+           },
+          }
        })
 
   // 4. Sort by points
@@ -423,7 +443,8 @@ async function handleRoute(request, { params }) {
       existing.monthly = existing.monthly || { admissions: 0, revenue: 0, points: 0 }
       existing.quarterly = existing.quarterly || { admissions: 0, revenue: 0, points: 0 }
       existing.lifetime = existing.lifetime || { admissions: 0, revenue: 0, points: 0}
-
+      // Admission History
+      existing.admissionHistory = existing.admissionHistory || []
         // 🔥 RESET LOGIC (ADD THIS BLOCK HERE)
       
 
@@ -480,6 +501,19 @@ async function handleRoute(request, { params }) {
 
       existing.lifetime.admissions += totalAdmissions
       existing.lifetime.revenue += revenue
+      for (let i = 0; i < totalAdmissions; i++) {
+
+        existing.admissionHistory.push({
+
+         date: effectiveDate.toISOString(),
+
+         revenue: revenue / Math.max(totalAdmissions, 1),
+
+         createdAt: new Date()
+
+        })
+
+       }
 
       const calcPoints = (a, r) => Math.floor(r / 1000) + a * 100
 

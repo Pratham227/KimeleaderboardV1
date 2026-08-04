@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 let client
 let db
 
-
 async function connectToMongo() {
   if (!client) {
     client = new MongoClient(process.env.MONGO_URL)
@@ -20,14 +19,88 @@ export async function GET(request) {
 
   if (secret !== process.env.RESET_SECRET) {
     return NextResponse.json(
-      { ok: false, error: "Unauthorized" },
-      { status: 401 }
+      {
+        ok: false,
+        error: "Unauthorized"
+      },
+      {
+        status: 401
+      }
     )
   }
+
   const db = await connectToMongo()
 
-  await db.collection('leaderboard_stats').updateMany(
+  // ==========================
+  // Find Quarterly Winner
+  // ==========================
+
+  const winner = await db
+    .collection("leaderboard_stats")
+    .find({})
+    .sort({
+      "quarterly.points": -1
+    })
+    .limit(1)
+    .next()
+
+  // ==========================
+  // Award Triple Crown Trophy
+  // ==========================
+
+  if (winner && winner.email) {
+
+    await db.collection("profile_achievements").updateOne(
+
+      {
+        email: winner.email.toLowerCase()
+      },
+
+      {
+        $inc: {
+          "trophies.tripleCrown.wins": 1
+        },
+
+        $set: {
+          "trophies.tripleCrown.lastWon": new Date(),
+          updatedAt: new Date()
+        },
+
+        $setOnInsert: {
+          email: winner.email.toLowerCase(),
+
+          trophies: {
+            podiumTopper: {
+              wins: 0,
+              lastWon: null
+            }
+          },
+
+          badges: {
+            fastStarter: false,
+            firestorm: false,
+            consistencyStar: false,
+            finisher: false
+          }
+        }
+      },
+
+      {
+        upsert: true
+      }
+
+    )
+
+  }
+
+  // ==========================
+  // Reset Quarterly Leaderboard
+  // ==========================
+
+  await db.collection("leaderboard_stats").updateMany(
+
     {},
+
     {
       $set: {
         quarterly: {
@@ -36,11 +109,19 @@ export async function GET(request) {
           points: 0
         }
       }
+
     }
+
   )
 
   return NextResponse.json({
+
     ok: true,
-    message: 'Quarterly leaderboard reset'
+
+    winner: winner?.email || null,
+
+    message: "Quarterly leaderboard reset successfully"
+
   })
+
 }
