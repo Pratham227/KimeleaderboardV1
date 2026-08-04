@@ -109,7 +109,8 @@ export default function TrophyCabinet({ lifetimeData }) {
         </div>
 
       </div>
-
+      
+      
       {/* Empty */}
 
       {items.length === 0 && (
@@ -232,8 +233,54 @@ export default function TrophyCabinet({ lifetimeData }) {
           ))}
 
         </div>
+        
 
       )}
+      <div className="mb-8 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/5 to-transparent px-6 py-4">
+
+        <span className="font-display text-lg text-cyan-300 font-black uppercase">
+          Hall of Glory Guide
+        </span>
+
+        <div className="mt-3 text-sm text-white/75 leading-8">
+
+          <span className="text-yellow-400 font-bold">Podium Topper</span>
+           — Awarded for finishing
+          <span className="text-yellow-300 font-bold"> #1 on the Monthly Leaderboard.</span>
+
+          <br />
+
+          <span className="text-yellow-400 font-bold">Triple Crown</span>
+          — Awarded for becoming the
+          <span className="text-yellow-300 font-bold"> Quarterly Champion.</span>
+
+          <br />
+
+           <span className="text-fuchsia-400 font-bold">Fast Starter</span>
+           — Highest admissions during the
+           <span className="text-fuchsia-300 font-bold"> first 7 days of the month.</span>
+
+           <br />
+
+           <span className="text-fuchsia-400 font-bold">Finisher</span>
+           — Highest admissions during the
+           <span className="text-fuchsia-300 font-bold"> final 7 days of the month.</span>
+
+           <br />
+
+          <span className="text-fuchsia-400 font-bold">Consistency Star</span>
+           — Maintain
+          <span className="text-fuchsia-300 font-bold"> at least 2 admissions every week.</span>
+
+          <br />
+
+          <span className="text-fuchsia-400 font-bold">Firestorm</span>
+           — Close
+          <span className="text-fuchsia-300 font-bold"> 5 admissions in a single day.</span>
+
+        </div>
+
+      </div>
 
     </div>
 
