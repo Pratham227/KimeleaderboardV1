@@ -1094,17 +1094,6 @@ function RewardsSection() {
           {/* PRIZE VALUE TOP */}
           <div className="flex items-center gap-5">
 
-            <div className="text-right">
-
-              <div className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-bold">
-                Winner
-              </div>
-
-              <div className="text-lg font-display font-black text-yellow-300">
-                 Suwarnaprabha Dive
-              </div>
-
-            </div>
   
             <div className="px-4 py-2 rounded-full border border-amber-400/30 bg-amber-400/10">
 
@@ -1205,6 +1194,19 @@ function RewardsSection() {
                 </div>
 
               </div>
+
+            </div>
+          <div className="mt-8 rounded-3xl border border-yellow-400/30 bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-transparent p-6">
+
+             <div className="text-s uppercase tracking-[0.45em] text-yellow-300 font-black">
+               Grand Winner
+             </div>
+
+             <h2 className="mt-2 font-display text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-to-r from-yellow-200 via-amber-300 to-orange-500 bg-clip-text text-transparent">
+                Suwarnaprabha Dive
+             </h2>
+
+             
 
             </div>
 
