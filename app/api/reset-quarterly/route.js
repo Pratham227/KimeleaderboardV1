@@ -3,6 +3,24 @@ import { NextResponse } from 'next/server'
 
 let client
 let db
+async function createNotification(
+  db,
+  title,
+  message,
+  type,
+  targetEmail,
+  redirect = "profile"
+) {
+  await db.collection("notifications").insertOne({
+    title,
+    message,
+    type,
+    targetEmail,
+    redirect,
+    read: false,
+    createdAt: new Date()
+  })
+}
 
 async function connectToMongo() {
   if (!client) {
@@ -51,6 +69,22 @@ export async function GET(request) {
   if (winner && winner.email) {
 
     await db.collection("profile_achievements").updateOne(
+
+      await createNotification(
+
+        db,
+
+        "👑 Triple Crown",
+
+        `${winner.name} became the Quarterly Champion and earned the Triple Crown Trophy.`,
+
+        "triple-crown",
+
+       winner.email,
+
+       "profile"
+
+      ),
 
       {
         email: winner.email.toLowerCase()

@@ -15,6 +15,7 @@ import Counter from '@/components/leaderboard/Counter'
 import { BRANCHES, TEAM_LEADS, CHALLENGES ,REWARD_CONTEST } from '@/lib/leaderboard-data'
 import { getSortedRowModel } from '@tanstack/react-table'
 import ProfileSection from '@/components/leaderboard/profile/ProfileSection'
+import NotificationBell from '@/components/NotificationBell'
 
 /* ------------- LOGO ------------- */
 const Logo = ({ size = 40 }) => (
@@ -293,6 +294,8 @@ function DashboardView({ user, onLogout }) {
   })
   const [lifetimeData, setLifetimeData] = useState(null)
   useEffect(() => {
+    if (!user?.email) return
+
     loadLeaderboard()
     loadChallenges()
     loadLifetime()
@@ -304,7 +307,7 @@ function DashboardView({ user, onLogout }) {
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [period])
+  }, [period, user?.email])
 
   const loadLeaderboard = async () => {
      try {
@@ -342,32 +345,77 @@ function DashboardView({ user, onLogout }) {
     }
   }
   const loadLifetime = async () => {
-   try {
-     const res = await fetch(
-      'https://leaderboard.kimeedu.co.in/api/leaderboard?period=Lifetime'
-     )
+    try {
+      if (!user?.email) return
 
-     const data = await res.json()
+      const res = await fetch(
+        '/api/leaderboard?period=Lifetime'
+      )
 
-     if (data.ok) {
-      const me = data.data.find(
+      const data = await res.json()
+
+      if (data.ok && Array.isArray(data.data)) {
+
+        const me = data.data.find(
+          x =>
+            x.email?.toLowerCase() ===
+            user.email.toLowerCase()
+        )
+
+        if (me) {
+          setLifetimeData(me)
+          return
+        }
+      }
+
+    // Fallback: use current leaderboard data
+      const fallback = COUNSELLORS.find(
+        x =>
+          x.email?.toLowerCase() ===
+          user.email.toLowerCase()
+        )
+
+      if (fallback) {
+        setLifetimeData({
+          ...fallback,
+          lifetime: {
+            admissions: fallback.admissions || 0,
+            revenue: fallback.revenue || 0,
+            points: fallback.points || 0
+          }
+        })
+      }
+
+    } catch (err) {
+      console.error('Lifetime fetch failed:', err)
+
+    // Fallback if API fails
+      const fallback = COUNSELLORS.find(
         x =>
           x.email?.toLowerCase() ===
           user?.email?.toLowerCase()
       )
 
-      setLifetimeData(me)
+       if (fallback) {
+         setLifetimeData({
+          ...fallback,
+          lifetime: {
+            admissions: fallback.admissions || 0,
+            revenue: fallback.revenue || 0,
+            points: fallback.points || 0
+          }
+        })
      }
-    } catch (err) {
-     console.log('Lifetime fetch failed')
     }
-  
-  }
+   }
   
   const [branch, setBranch] = useState('All')
   const [lead, setLead] = useState('All')
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('leaderboard') // leaderboard | rewards | challenges
+  const [selectedCounselor, setSelectedCounselor] = useState(null)
+  const [profileData, setProfileData] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
   const [category, setCategory] = useState(null) // null | 'King' | 'Prince' | 'Warrior'
   const [snapUser, setSnapUser] = useState(null) // user object for snapshot modal
   const [time, setTime] = useState({ d: 10, h: 3, m: 28, s: 42 })
@@ -420,23 +468,152 @@ function DashboardView({ user, onLogout }) {
   // Current logged-in user resolved from leaderboard data (so rank/points are accurate).
   // For Admin (Pratham), there is no leaderboard entry — fall back to the auth payload.
   const currentUser = useMemo(() => {
-    if (user && user.email) {
-      const found = COUNSELLORS.find(c => c.email && c.email.toLowerCase() === user.email.toLowerCase())
-      if (found) return found
-      // Admin / non-ranked synthetic profile
+
+    if (user?.email) {
+
+      const found = COUNSELLORS.find(
+        c =>
+          c.email &&
+          c.email.toLowerCase() ===
+          user.email.toLowerCase()
+      )
+
+      if (found) {
+        return found
+      }
+
+    // Fallback for Admin / non-ranked user
       return {
         name: user.name || 'User',
         email: user.email,
-        initials: (user.name || 'U').split(/\s+/).slice(0,2).map(s => s[0]).join('').toUpperCase(),
+        initials: (user.name || 'U')
+          .split(/\s+/)
+          .slice(0, 2)
+          .map(s => s[0])
+          .join('')
+          .toUpperCase(),
+
         branch: user.branch || '—',
         lead: user.lead || '—',
+        designation: user.designation || '—',
+
         role: user.role || 'Admin',
         isAdmin: !!user.isAdmin,
-        rank: null, points: 0, revenue: 0, admissions: 0, streak: 0, winRate: 0, movement: 0,
+
+        rank: null,
+        points: 0,
+        revenue: 0,
+        admissions: 0,
+        streak: 0,
+        winRate: 0,
+        movement: 0
       }
     }
-    return COUNSELLORS[0]
-  }, [user])
+
+    return COUNSELLORS[0] || null
+
+  }, [user, COUNSELLORS])
+  const profileUser = selectedCounselor
+    ? (profileData || selectedCounselor)
+    : (lifetimeData || currentUser || {
+        name: user?.name || 'User',
+        email: user?.email || '',
+        initials: (user?.name || 'U')
+          .split(/\s+/)
+          .slice(0, 2)
+          .map(s => s[0])
+          .join('')
+          .toUpperCase(),
+        branch: user?.branch || '—',
+        lead: user?.lead || '—',
+        designation: user?.designation || '—',
+        role: user?.role || 'Warrior',
+        rank: null,
+        points: 0,
+        revenue: 0,
+        admissions: 0
+      })
+  const openCounselorProfile = async (counselor) => {
+
+    if (!counselor?.email) return
+
+    setSelectedCounselor(counselor)
+    setProfileData(null)
+    setProfileLoading(true)
+    setTab('profile')
+
+    try {
+
+      const res = await fetch(
+        `/api/profile?email=${encodeURIComponent(counselor.email)}`
+      )
+
+      const data = await res.json()
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Profile loading failed')
+      }
+
+      setProfileData(data.profile)
+
+      } catch (error) {
+
+       console.error('Profile loading failed:', error)
+
+      } finally {
+
+       setProfileLoading(false)
+
+     }
+   }
+   const openMyProfile = async () => {
+
+     if (!user?.email) {
+      console.error('Logged-in user email not found')
+      return
+     }
+
+  // Clear previously opened counselor
+     setSelectedCounselor(null)
+     setProfileData(null)
+
+  // Show loading state
+     setProfileLoading(true)
+
+  // Open profile tab
+     setTab('profile')
+
+     try {
+
+       const res = await fetch(
+         `/api/profile?email=${encodeURIComponent(user.email)}`
+       )
+
+       const data = await res.json()
+
+       if (!res.ok || !data.ok) {
+         throw new Error(
+          data.error || 'Unable to load your profile'
+        )
+       }
+
+    // Load logged-in user's profile
+       setProfileData(data.profile)
+
+      } catch (error) {
+
+        console.error(
+          'My profile loading failed:',
+           error
+        )
+
+      } finally {
+
+        setProfileLoading(false)
+
+      }
+    }
+
 
   const isAdmin = !!(currentUser && currentUser.isAdmin)
 
@@ -502,12 +679,11 @@ function DashboardView({ user, onLogout }) {
                 <span className="relative z-10 flex items-center gap-1.5"><Camera size={14} /> Snapshot</span>
               </button>
             )}
-            <button className="relative p-2 rounded-xl glass hover:bg-white/10 transition">
-              <Bell size={16} className="text-white/80" />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-fuchsia-500 to-pink-500 ring-2 ring-[#05050f] animate-pulse" />
-            </button>
+             <NotificationBell
+               currentUser={currentUser}
+             />
             <button
-              onClick={() => setTab('profile')}
+              onClick={openMyProfile}
               className="hidden sm:flex items-center gap-2 glass rounded-full pl-1 pr-3 py-1 hover:scale-105 transition-all cursor-pointer"
             >
               <div className={`w-8 h-8 rounded-full grid place-items-center font-display font-bold text-xs ${
@@ -565,7 +741,11 @@ function DashboardView({ user, onLogout }) {
             >
 
       
-              <Podium top3={top3} onSnap={setSnapUser} />
+              <Podium
+                top3={top3}
+                onSnap={setSnapUser}
+                onProfile={openCounselorProfile}
+              />
 
       {/* PERIOD TABS */}
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -651,6 +831,7 @@ function DashboardView({ user, onLogout }) {
            <LeaderboardTable
              rows={rest}
              onSnap={setSnapUser}
+             onProfile={openCounselorProfile}
            />
 
          </motion.div>
@@ -682,19 +863,50 @@ function DashboardView({ user, onLogout }) {
         )}
 
         {tab === 'profile' && (
-         <motion.div
-           key="profile"
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           exit={{ opacity: 0 }}
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+             exit={{ opacity: 0, y: -10 }}
           >
-           <ProfileSection
-             currentUser={currentUser}
-             lifetimeData={lifetimeData}
-             setTab={setTab}
+
+          {profileLoading && (
+           <div className="glass-strong rounded-2xl p-10 text-center">
+             <div className="text-fuchsia-300 text-sm font-semibold">
+               Loading profile...
+             </div>
+
+             <div className="text-white/40 text-xs mt-2">
+               Fetching counsellor achievements and lifetime performance
+             </div>
+           </div>
+          )}
+
+          {!profileLoading && profileData && (
+            <ProfileSection
+              currentUser={profileUser}
+              lifetimeData={profileData}
+              setTab={setTab}
             />
-         </motion.div>
-        )}
+          )}
+
+          {!profileLoading && !profileData && selectedCounselor && (
+            <div className="glass-strong rounded-2xl p-10 text-center">
+              <div className="text-rose-300 text-sm font-semibold">
+                Unable to load profile
+              </div>
+
+              <button
+                onClick={() => setTab('leaderboard')}
+                className="mt-4 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm"
+              >
+                Back to Leaderboard
+              </button>
+           </div>
+           )}
+
+       </motion.div>
+     )}
 
       </AnimatePresence>
 
@@ -790,21 +1002,38 @@ function CountdownCard() {
   )
 }
 
-function Podium({ top3, onSnap }) {
+function Podium({ top3, onSnap, onProfile }) {
   if (top3.length < 3) return null
   const [p2, p1, p3] = [top3[1], top3[0], top3[2]]
   return (
     <section className="relative">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
-        <PodiumCard user={p2} rank={2} onSnap={onSnap} />
-        <PodiumCard user={p1} rank={1} onSnap={onSnap} />
-        <PodiumCard user={p3} rank={3} onSnap={onSnap} />
+        <PodiumCard
+           user={p2}
+           rank={2}
+           onSnap={onSnap}
+           onProfile={onProfile}
+         />
+
+        <PodiumCard
+           user={p1}
+           rank={1}
+           onSnap={onSnap}
+           onProfile={onProfile}
+         />
+
+        <PodiumCard
+          user={p3}
+          rank={3}
+          onSnap={onSnap}
+          onProfile={onProfile}
+        />
       </div>
     </section>
   )
 }
 
-function PodiumCard({ user, rank, onSnap }) {
+function PodiumCard({ user, rank, onSnap, onProfile }) {
   const cfg = {
     1: { border: 'neon-border-gold', grad: 'from-amber-400 via-yellow-300 to-orange-500', icon: Crown, label: 'Champion', txt: 'gradient-text-gold', scale: 'md:scale-110 md:-translate-y-4', order: 'md:order-2' },
     2: { border: 'neon-border-silver', grad: 'from-slate-200 via-slate-300 to-slate-500', icon: Medal, label: '2nd Place', txt: 'text-slate-200', scale: '', order: 'md:order-1' },
@@ -981,7 +1210,7 @@ function RoleBadge({ role }) {
   )
 }
 
-function LeaderboardTable({ rows, onSnap }) {
+function LeaderboardTable({ rows, onSnap, onProfile }) {
   const max = Math.max(...rows.map(r => r.displayPoints), 1)
   return (
     <div className="glass-strong rounded-2xl border border-white/10 overflow-hidden">
@@ -998,7 +1227,12 @@ function LeaderboardTable({ rows, onSnap }) {
               <div className="font-display font-black text-lg text-white/80 w-8">##{i + 4}</div>
               <MovementArrow m={c.movement} />
             </div>
-            <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => onProfile(c)}
+              className="flex items-center gap-3 min-w-0 text-left group"
+              title={`View ${c.name}'s profile`}
+            >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 via-violet-500 to-blue-500 grid place-items-center font-display font-bold text-xs text-white shrink-0">
                 {c.initials}
               </div>
@@ -1012,7 +1246,7 @@ function LeaderboardTable({ rows, onSnap }) {
                   <span className="text-[10px] text-white/40">Win {c.winRate}%</span>
                 </div>
               </div>
-            </div>
+            </button>
             <div className="text-white/70 text-xs">{c.branch}</div>
             <div className="text-white/70 text-xs">{c.lead}</div>
             <div className="text-right font-display font-semibold tabular-nums text-white">{c.admissions}</div>

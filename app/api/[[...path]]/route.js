@@ -29,6 +29,24 @@ async function connectToMongo() {
   }
   return db
 }
+async function createNotification(
+  db,
+  title,
+  message,
+  type,
+  targetEmail,
+  section = "profile"
+) {
+  await db.collection("notifications").insertOne({
+    title,
+    message,
+    type,
+    targetEmail,
+    section,
+    read: false,
+    createdAt: new Date()
+  })
+}
 
 function handleCORS(response) {
   response.headers.set(
@@ -200,8 +218,8 @@ async function handleRoute(request, { params }) {
             { status: 400 }
           )
         )
-      }
-
+      }        
+      
       const employee = findEmployeeByEmail(email)
 
       if (!employee) {
@@ -362,6 +380,89 @@ async function handleRoute(request, { params }) {
       })
     )
   }
+   // ---------------- PROFILE ----------------
+   if (route === '/profile' && method === 'GET') {
+
+     const { searchParams } = new URL(request.url)
+
+     const email = (searchParams.get('email') || '')
+       .trim()
+       .toLowerCase()
+
+     if (!email) {
+       return handleCORS(
+         NextResponse.json(
+           {
+            ok: false,
+            error: 'Email is required'
+           },
+          { status: 400 }
+         )
+       )
+     }
+
+  // Find employee
+      const employee = findEmployeeByEmail(email)
+
+      if (!employee) {
+        return handleCORS(
+          NextResponse.json(
+            {
+             ok: false,
+             error: 'Counsellor not found'
+            },
+            { status: 404 }
+          )
+        )
+      }
+
+  // Get lifetime/stat data
+      const stats = await db
+        .collection('leaderboard_stats')
+        .findOne({ email })
+
+  // Get achievement data
+      const achievements = await db
+       .collection('profile_achievements')
+       .findOne({ email })
+
+      const lifetime = stats?.lifetime || {
+        admissions: 0,
+        revenue: 0,
+        points: 0
+      }
+
+      const admissionHistory = stats?.admissionHistory || []
+
+      const profile = {
+        name: employee.name,
+        email: employee.email,
+        gender: employee.gender,
+        branch: employee.branch || '',
+        lead: employee.lead || '',
+        designation: employee.designation || '',
+
+        role: categoryForEmployee(employee),
+        tenure: computeTenure(employee),
+
+        lifetime: {
+          admissions: Number(lifetime.admissions || 0),
+          revenue: Number(lifetime.revenue || 0),
+          points: Number(lifetime.points || 0)
+        },
+
+        admissionHistory,
+
+        achievements: achievements || {}
+      }
+
+      return handleCORS(
+        NextResponse.json({
+          ok: true,
+          profile
+        })
+     )
+   }
    
     // ===================================================
     // SUPERLEAP WEBHOOK
@@ -378,7 +479,7 @@ async function handleRoute(request, { params }) {
           )
         )
       }
-
+              
       const body = await request.json().catch(() => ({}))
 
       const email = (body.email || '').trim().toLowerCase()
@@ -529,7 +630,194 @@ async function handleRoute(request, { params }) {
         { upsert: true }
       )
        
+      const lifetimeAdmissions = existing.lifetime.admissions
 
+      const admissionMilestones = [
+        10,
+        25,
+        50,
+        100,
+        200
+      ]
+
+      for (const milestone of admissionMilestones) {
+
+         if (lifetimeAdmissions === milestone) {
+
+           const alreadySent =
+             await db.collection("notifications").findOne({
+
+               targetEmail: email,
+
+               type: "admission-club",
+
+               message: {
+                 $regex: `${milestone}`
+              }
+
+            })
+
+            if (!alreadySent) {
+
+              await createNotification(
+
+                db,
+
+                "🎖 Admission Club",
+
+                `${employee.name} has entered the ${milestone} Admissions Club.`,
+
+                "admission-club",
+
+                 email,
+
+                "admission-club"
+
+              )
+
+            }
+
+         }
+
+       }
+       const lifetimeRevenue = existing.lifetime.revenue
+
+       const revenueMilestones = [
+         1000000,   //10L
+         2500000,   //25L
+         5000000,   //50L
+         10000000,  //1Cr
+         20000000   //2Cr
+        ]
+
+       for (const milestone of revenueMilestones) {
+
+         if (lifetimeRevenue >= milestone) {
+
+          const alreadySent =
+            await db.collection("notifications").findOne({
+
+              targetEmail: email,
+
+              type: "revenue-club",
+
+              message: {
+                $regex: `${milestone}`
+              }
+
+            })
+
+          if (!alreadySent) {
+
+            await createNotification(
+
+            db,
+
+            "Revenue Club",
+
+            `${employee.name} entered the ₹${(milestone/100000).toFixed(0)}L Revenue Club.`,
+
+            "revenue-club",
+
+             email,
+
+             "revenue-club"
+
+             )
+
+           }
+
+          }
+
+        }
+       const profile =
+       await db.collection("profile_achievements").findOne({
+           email
+       })
+
+       if(profile){
+
+          if(profile.badges?.firestorm){
+
+            await createNotification(
+
+              db,
+
+              "Hall of Glory",
+
+              `${employee.name} earned the Firestorm Badge.`,
+
+               "hall-glory",
+
+               email,
+
+               "hall"
+
+            )
+
+          }
+
+          if(profile.badges?.fastStarter){
+
+            await createNotification(
+
+              db,
+
+              "Hall of Glory",
+
+              `${employee.name} earned the Fast Starter Badge.`,
+
+              "hall-glory",
+
+               email,
+
+              "hall"
+
+            )
+
+          }
+
+          if(profile.badges?.finisher){
+
+            await createNotification(
+
+              db,
+
+              "Hall of Glory",
+
+              `${employee.name} earned the Finisher Badge.`,
+
+              "hall-glory",
+
+               email,
+
+               "hall"
+
+            )
+
+          }
+
+         if(profile.badges?.consistencyStar){
+
+            await createNotification(
+
+               db,
+
+              "Hall of Glory",
+
+              `${employee.name} earned the Consistency Star Badge.`,
+
+               "hall-glory",
+
+                email,
+
+                "hall"
+
+            )
+
+          }
+
+      }
       return handleCORS(
         NextResponse.json({
           ok: true,

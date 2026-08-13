@@ -4,6 +4,25 @@ import { NextResponse } from 'next/server'
 let client
 let db
 
+async function createNotification(
+  db,
+  title,
+  message,
+  type,
+  targetEmail,
+  redirect = "profile"
+) {
+  await db.collection("notifications").insertOne({
+    title,
+    message,
+    type,
+    targetEmail,
+    redirect,
+    read: false,
+    createdAt: new Date()
+  })
+}
+
 async function connectToMongo() {
   if (!client) {
     client = new MongoClient(process.env.MONGO_URL)
@@ -35,14 +54,16 @@ export async function GET(request) {
   // Find Monthly Winner
   // ==========================
 
-  const winner = await db
+  const topThree = await db
     .collection("leaderboard_stats")
     .find({})
     .sort({
       "monthly.points": -1
     })
-    .limit(1)
-    .next()
+     .limit(3)
+     .toArray()
+
+  const winner = topThree[0]
 
   // ==========================
   // Award Podium Topper Trophy
@@ -51,6 +72,22 @@ export async function GET(request) {
   if (winner && winner.email) {
 
     await db.collection("profile_achievements").updateOne(
+
+      await createNotification(
+
+        db,
+
+        "🏆 Podium Topper",
+
+        `${winner.name} received the Podium Topper Trophy.`,
+
+         "podium-topper",
+
+         winner.email,
+
+        "profile"
+
+       ),
 
       {
         email: winner.email.toLowerCase()
@@ -92,6 +129,29 @@ export async function GET(request) {
     )
 
   }
+  for (let i = 0; i < topThree.length; i++) {
+
+    const employee = topThree[i]
+
+    if (!employee) continue
+
+    await createNotification(
+
+      db,
+
+      "Monthly Leaderboard",
+
+      `${employee.name} finished #${i + 1} on the Monthly Leaderboard.`,
+
+      "monthly-top3",
+
+      employee.email,
+
+      "profile"
+
+    )
+
+   }
 
   // ==========================
   // Reset Monthly Leaderboard
