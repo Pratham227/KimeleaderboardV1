@@ -420,6 +420,43 @@ async function handleRoute(request, { params }) {
       const stats = await db
         .collection('leaderboard_stats')
         .findOne({ email })
+  
+   // Calculate Lifetime Rank
+  // ==========================
+
+  const allLifetimeStats = await db
+    .collection('leaderboard_stats')
+    .find(
+      {},
+      {
+        projection: {
+          email: 1,
+          'lifetime.points': 1
+        }
+      }
+    )
+    .toArray()
+
+
+  const rankedLifetime = allLifetimeStats
+
+    .map(item => ({
+      email: item.email?.toLowerCase(),
+      points: Number(
+        item.lifetime?.points || 0
+      )
+    }))
+
+    .sort(
+      (a, b) => b.points - a.points
+    )
+
+
+  const lifetimeRank =
+    rankedLifetime.findIndex(
+      item => item.email === email
+    ) + 1
+
 
   // Get achievement data
       const achievements = await db
@@ -450,6 +487,11 @@ async function handleRoute(request, { params }) {
           revenue: Number(lifetime.revenue || 0),
           points: Number(lifetime.points || 0)
         },
+        // Lifetime Global Rank
+
+        rank: lifetimeRank > 0
+          ? lifetimeRank
+          : null,
 
         admissionHistory,
 

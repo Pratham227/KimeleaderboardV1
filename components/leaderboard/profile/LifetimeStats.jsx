@@ -11,20 +11,28 @@ export default function LifetimeStats({
   lifetimeData
 }) {
 
+  // Support both:
+  // lifetimeData.revenue
+  // lifetimeData.lifetime.revenue
+
+  const lifetime = lifetimeData?.lifetime || lifetimeData || {}
+
   const cards = [
     {
       title: 'Lifetime Revenue',
-      value: `₹${((lifetimeData?.revenue || 0)/100000).toFixed(1)}L`,
+      value: `₹${(
+        Number(lifetime.revenue || 0) / 100000
+      ).toFixed(1)}L`,
       icon: DollarSign
     },
     {
       title: 'Lifetime Admissions',
-      value: lifetimeData?.admissions || 0,
+      value: Number(lifetime.admissions || 0),
       icon: Users
     },
     {
       title: 'Lifetime Points',
-      value: lifetimeData?.points || 0,
+      value: Number(lifetime.points || 0),
       icon: Star
     },
     {
@@ -46,6 +54,7 @@ export default function LifetimeStats({
             key={card.title}
             className="glass-strong rounded-2xl p-6 border border-white/10 hover:border-fuchsia-500/40 transition"
           >
+
             <Icon
               className="text-fuchsia-400 mb-4"
               size={24}

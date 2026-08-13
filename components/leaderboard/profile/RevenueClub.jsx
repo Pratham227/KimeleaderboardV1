@@ -5,27 +5,27 @@ import { BadgeIndianRupee } from 'lucide-react'
 
 const BADGES = [
   {
-    milestone: 1000000, // 10L
+    milestone: 1000000, // ₹10L
     image: '/revenue/10l.png',
     label: '₹10L'
   },
   {
-    milestone: 2500000, // 25L
+    milestone: 2500000, // ₹25L
     image: '/revenue/25l.png',
     label: '₹25L'
   },
   {
-    milestone: 5000000, // 50L
+    milestone: 5000000, // ₹50L
     image: '/revenue/50l.png',
     label: '₹50L'
   },
   {
-    milestone: 10000000, // 1Cr
+    milestone: 10000000, // ₹1Cr
     image: '/revenue/1cr.png',
     label: '₹1Cr'
   },
   {
-    milestone: 20000000, // 2Cr
+    milestone: 20000000, // ₹2Cr
     image: '/revenue/2cr.png',
     label: '₹2Cr'
   }
@@ -33,17 +33,42 @@ const BADGES = [
 
 export default function RevenueClub({ lifetimeData }) {
 
-  const totalRevenue = lifetimeData?.revenue || 0
+  // ==========================================
+  // Get lifetime statistics
+  //
+  // API structure:
+  //
+  // lifetimeData.lifetime.revenue
+  //
+  // Also supports direct lifetimeData.revenue
+  // ==========================================
+
+  const lifetime =
+    lifetimeData?.lifetime ||
+    lifetimeData ||
+    {}
+
+  const totalRevenue =
+    Number(lifetime.revenue || 0)
+
+
+  // ==========================================
+  // Find all earned revenue badges
+  // ==========================================
 
   const earnedBadges = BADGES.filter(
     badge => totalRevenue >= badge.milestone
   )
 
+
   return (
 
     <div className="glass-strong rounded-3xl border border-emerald-500/20 p-6">
 
-      {/* Header */}
+
+      {/* ==========================================
+          HEADER
+      ========================================== */}
 
       <div className="flex items-center gap-3 mb-6">
 
@@ -55,6 +80,7 @@ export default function RevenueClub({ lifetimeData }) {
           />
 
         </div>
+
 
         <div>
 
@@ -70,7 +96,10 @@ export default function RevenueClub({ lifetimeData }) {
 
       </div>
 
-      {/* Badges */}
+
+      {/* ==========================================
+          NO BADGES
+      ========================================== */}
 
       {earnedBadges.length === 0 ? (
 
@@ -82,19 +111,37 @@ export default function RevenueClub({ lifetimeData }) {
 
       ) : (
 
+
+        /* ==========================================
+           EARNED BADGES
+        ========================================== */
+
         <div className="flex flex-wrap gap-4">
 
           {earnedBadges.map((badge, index) => (
 
             <motion.div
               key={badge.milestone}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
+
+              initial={{
+                opacity: 0,
+                y: 20
+              }}
+
+              whileInView={{
+                opacity: 1,
+                y: 0
+              }}
+
+              transition={{
+                delay: index * 0.05
+              }}
+
               whileHover={{
                 y: -6,
                 scale: 1.05
               }}
+
               className="w-24"
             >
 
@@ -105,7 +152,9 @@ export default function RevenueClub({ lifetimeData }) {
               />
 
               <div className="mt-2 text-center text-xs text-white">
+
                 {badge.label}
+
               </div>
 
             </motion.div>
@@ -119,5 +168,4 @@ export default function RevenueClub({ lifetimeData }) {
     </div>
 
   )
-
 }
