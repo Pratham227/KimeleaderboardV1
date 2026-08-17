@@ -16,11 +16,11 @@ async function connectDB() {
 
 // Get notifications for logged in user
 export async function GET(request) {
-
+  
   const email = new URL(request.url).searchParams.get("email")
 
   const db = await connectDB()
-
+  
   const list = await db
     .collection("notifications")
     .find({

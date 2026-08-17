@@ -4,184 +4,412 @@ import { NextResponse } from 'next/server'
 let client
 let db
 
-async function createNotification(
+
+// =====================================================
+// CONNECT TO MONGODB
+// =====================================================
+
+async function connectToMongo() {
+
+  if (!client) {
+
+    client = new MongoClient(
+      process.env.MONGO_URL
+    )
+
+    await client.connect()
+
+    db = client.db(
+      process.env.DB_NAME
+    )
+  }
+
+  return db
+}
+
+
+// =====================================================
+// SEND NOTIFICATION TO EVERY COUNSELOR
+// =====================================================
+
+async function createNotificationForAll(
   db,
   title,
   message,
   type,
-  targetEmail,
   redirect = "profile"
 ) {
-  await db.collection("notifications").insertOne({
-    title,
-    message,
-    type,
-    targetEmail,
-    redirect,
-    read: false,
-    createdAt: new Date()
-  })
+
+  // Get all counselor emails from leaderboard_stats
+  const counselors = await db
+    .collection("leaderboard_stats")
+    .find(
+      {
+        email: {
+          $exists: true,
+          $ne: ""
+        }
+      },
+      {
+        projection: {
+          email: 1
+        }
+      }
+    )
+    .toArray()
+
+
+  if (!counselors.length) {
+    return
+  }
+
+
+  // Remove duplicate emails
+  const uniqueEmails = [
+    ...new Set(
+      counselors
+        .map(item =>
+          item.email
+            ?.trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    )
+  ]
+
+
+  if (!uniqueEmails.length) {
+    return
+  }
+
+
+  const notifications =
+    uniqueEmails.map(email => ({
+
+      title,
+
+      message,
+
+      type,
+
+      targetEmail: email,
+
+      redirect,
+
+      read: false,
+
+      createdAt: new Date()
+
+    }))
+
+
+  await db
+    .collection("notifications")
+    .insertMany(
+      notifications
+    )
 }
 
-async function connectToMongo() {
-  if (!client) {
-    client = new MongoClient(process.env.MONGO_URL)
-    await client.connect()
-    db = client.db(process.env.DB_NAME)
-  }
-  return db
-}
+
+// =====================================================
+// MONTHLY RESET
+// =====================================================
 
 export async function GET(request) {
 
-  const secret = new URL(request.url).searchParams.get("secret")
+  try {
 
-  if (secret !== process.env.RESET_SECRET) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Unauthorized"
-      },
-      {
-        status: 401
-      }
-    )
-  }
+    // =================================================
+    // SECURITY
+    // =================================================
 
-  const db = await connectToMongo()
+    const secret =
+      new URL(request.url)
+        .searchParams
+        .get("secret")
 
-  // ==========================
-  // Find Monthly Winner
-  // ==========================
 
-  const topThree = await db
-    .collection("leaderboard_stats")
-    .find({})
-    .sort({
-      "monthly.points": -1
-    })
-     .limit(3)
-     .toArray()
+    if (
+      secret !==
+      process.env.RESET_SECRET
+    ) {
 
-  const winner = topThree[0]
-
-  // ==========================
-  // Award Podium Topper Trophy
-  // ==========================
-
-  if (winner && winner.email) {
-
-    await db.collection("profile_achievements").updateOne(
-
-      await createNotification(
-
-        db,
-
-        "🏆 Podium Topper",
-
-        `${winner.name} received the Podium Topper Trophy.`,
-
-         "podium-topper",
-
-         winner.email,
-
-        "profile"
-
-       ),
-
-      {
-        email: winner.email.toLowerCase()
-      },
-
-      {
-        $inc: {
-          "trophies.podiumTopper.wins": 1
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Unauthorized"
         },
-
-        $set: {
-          "trophies.podiumTopper.lastWon": new Date(),
-          updatedAt: new Date()
-        },
-
-        $setOnInsert: {
-          email: winner.email.toLowerCase(),
-
-          trophies: {
-            tripleCrown: {
-              wins: 0,
-              lastWon: null
-            }
-          },
-
-          badges: {
-            fastStarter: false,
-            firestorm: false,
-            consistencyStar: false,
-            finisher: false
-          }
+        {
+          status: 401
         }
-      },
-
-      {
-        upsert: true
-      }
-
-    )
-
-  }
-  for (let i = 0; i < topThree.length; i++) {
-
-    const employee = topThree[i]
-
-    if (!employee) continue
-
-    await createNotification(
-
-      db,
-
-      "Monthly Leaderboard",
-
-      `${employee.name} finished #${i + 1} on the Monthly Leaderboard.`,
-
-      "monthly-top3",
-
-      employee.email,
-
-      "profile"
-
-    )
-
-   }
-
-  // ==========================
-  // Reset Monthly Leaderboard
-  // ==========================
-
-  await db.collection("leaderboard_stats").updateMany(
-
-    {},
-
-    {
-      $set: {
-        monthly: {
-          admissions: 0,
-          revenue: 0,
-          points: 0
-        }
-      }
+      )
 
     }
 
-  )
 
-  return NextResponse.json({
+    const db =
+      await connectToMongo()
 
-    ok: true,
 
-    winner: winner?.email || null,
+    // =================================================
+    // FIND FINAL MONTHLY TOP 3
+    // =================================================
 
-    message: "Monthly leaderboard reset successfully"
+    const topThree =
+      await db
+        .collection("leaderboard_stats")
+        .find(
+          {
+            email: {
+              $exists: true,
+              $ne: ""
+            }
+          }
+        )
+        .sort({
+          "monthly.points": -1
+        })
+        .limit(3)
+        .toArray()
 
-  })
+
+    const winner =
+      topThree[0]
+
+
+    // =================================================
+    // AWARD PODIUM TOPPER
+    // =================================================
+
+    if (
+      winner &&
+      winner.email
+    ) {
+
+      const winnerEmail =
+        winner.email
+          .trim()
+          .toLowerCase()
+
+
+      // -----------------------------------------------
+      // Award trophy
+      // -----------------------------------------------
+
+      await db
+        .collection(
+          "profile_achievements"
+        )
+        .updateOne(
+
+          {
+            email: winnerEmail
+          },
+
+          {
+
+            $inc: {
+              "trophies.podiumTopper.wins": 1
+            },
+
+            $set: {
+
+              "trophies.podiumTopper.lastWon":
+                new Date(),
+
+              updatedAt:
+                new Date()
+
+            },
+
+            $setOnInsert: {
+
+              email:
+                winnerEmail,
+
+              trophies: {
+
+                podiumTopper: {
+                  wins: 1,
+                  lastWon: new Date()
+                },
+
+                tripleCrown: {
+                  wins: 0,
+                  lastWon: null
+                }
+
+              },
+
+              badges: {
+
+                fastStarter: false,
+
+                firestorm: false,
+
+                consistencyStar: false,
+
+                finisher: false
+
+              }
+
+            }
+
+          },
+
+          {
+            upsert: true
+          }
+
+        )
+
+
+      // -----------------------------------------------
+      // Notify EVERY counselor
+      // -----------------------------------------------
+
+      await createNotificationForAll(
+
+        db,
+
+        "Podium Topper",
+
+        `${winner.name || winner.email} received the Podium Topper Trophy for finishing #1 on the Monthly Leaderboard.`,
+
+        "podium-topper",
+
+        "profile"
+
+      )
+
+    }
+
+
+    // =================================================
+    // FINAL MONTHLY TOP 3
+    // =================================================
+
+    for (
+      let i = 0;
+      i < topThree.length;
+      i++
+    ) {
+
+      const employee =
+        topThree[i]
+
+
+      if (
+        !employee ||
+        !employee.email
+      ) {
+        continue
+      }
+
+
+      await createNotificationForAll(
+
+        db,
+
+        "Monthly Leaderboard",
+
+        `${employee.name || employee.email} finished #${i + 1} on the Monthly Leaderboard.`,
+
+        "monthly-top3",
+
+        "profile"
+
+      )
+
+    }
+
+
+    // =================================================
+    // RESET MONTHLY LEADERBOARD
+    // =================================================
+
+    await db
+      .collection(
+        "leaderboard_stats"
+      )
+      .updateMany(
+
+        {},
+
+        {
+          $set: {
+
+            monthly: {
+
+              admissions: 0,
+
+              revenue: 0,
+
+              points: 0
+
+            }
+
+          }
+
+        }
+
+      )
+
+
+    // =================================================
+    // RESPONSE
+    // =================================================
+
+    return NextResponse.json({
+
+      ok: true,
+
+      winner:
+        winner?.email || null,
+
+      topThree:
+        topThree.map(
+          (employee, index) => ({
+
+            rank: index + 1,
+
+            email:
+              employee.email,
+
+            name:
+              employee.name || null
+
+          })
+        ),
+
+      message:
+        "Monthly leaderboard reset successfully"
+
+    })
+
+
+  } catch (error) {
+
+    console.error(
+      "Monthly reset error:",
+      error
+    )
+
+
+    return NextResponse.json(
+
+      {
+        ok: false,
+        error:
+          "Monthly reset failed"
+      },
+
+      {
+        status: 500
+      }
+
+    )
+
+  }
 
 }

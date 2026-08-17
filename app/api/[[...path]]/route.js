@@ -47,6 +47,33 @@ async function createNotification(
     createdAt: new Date()
   })
 }
+async function createNotificationForAll(
+  db,
+  title,
+  message,
+  type,
+  section = "profile"
+) {
+  const counselors = EMPLOYEES_RAW.filter(
+    employee => !employee.isAdmin
+  )
+
+  if (!counselors.length) return
+
+  const notifications = counselors.map(employee => ({
+    title,
+    message,
+    type,
+    targetEmail: employee.email.toLowerCase(),
+    section,
+    read: false,
+    createdAt: new Date()
+  }))
+
+  await db
+    .collection("notifications")
+    .insertMany(notifications)
+}
 
 function handleCORS(response) {
   response.headers.set(
@@ -626,6 +653,36 @@ async function handleRoute(request, { params }) {
       existing.quarterly = { admissions: 0, revenue: 0, points: 0 }
       existing.quarterKey = currentQuarter
     }
+    const oldTopThree = await db
+      .collection('leaderboard_stats')
+      .find(
+        {
+         email: {
+           $exists: true,
+           $ne: ''
+         }
+        },
+       {
+         projection: {
+           email: 1,
+           'monthly.points': 1
+         }
+       }
+      )
+      .sort({
+       'monthly.points': -1
+      })
+      .limit(3)
+      .toArray()
+
+    const oldTopThreeEmails = oldTopThree
+     .map(item =>
+       item.email?.trim().toLowerCase()
+      )
+     .filter(Boolean)
+
+    const wasAlreadyTopThree =
+      oldTopThreeEmails.includes(email)
 
 
       
@@ -671,6 +728,65 @@ async function handleRoute(request, { params }) {
         { $set: existing },
         { upsert: true }
       )
+      const newTopThree = await db
+        .collection('leaderboard_stats')
+        .find(
+          {
+          email: {
+            $exists: true,
+            $ne: ''
+          }
+         },
+         {
+          projection: {
+            email: 1,
+            'monthly.points': 1
+          }
+         }
+        )
+        .sort({
+          'monthly.points': -1
+        })
+        .limit(3)
+        .toArray()
+
+
+      const newRankIndex = newTopThree.findIndex(
+        item =>
+         item.email?.trim().toLowerCase() === email
+       )
+
+
+      const newRank =
+        newRankIndex === -1
+          ? null
+          : newRankIndex + 1
+
+
+// =====================================================
+// COUNSELOR ENTERED MONTHLY TOP 3
+// =====================================================
+
+      if (
+       !wasAlreadyTopThree &&
+       newRank !== null &&
+       newRank <= 3
+      ) {
+
+         await createNotificationForAll(
+
+         db,
+
+        "Monthly Top 3",
+
+        `${employee.name} has entered the Top 3 on the Monthly Leaderboard at #${newRank}.`,
+
+         "monthly-top3-entry",
+
+         "profile"
+
+        )
+      }
        
       const lifetimeAdmissions = existing.lifetime.admissions
 
@@ -684,7 +800,7 @@ async function handleRoute(request, { params }) {
 
       for (const milestone of admissionMilestones) {
 
-         if (lifetimeAdmissions === milestone) {
+         if (lifetimeAdmissions >= milestone) {
 
            const alreadySent =
              await db.collection("notifications").findOne({
@@ -701,7 +817,7 @@ async function handleRoute(request, { params }) {
 
             if (!alreadySent) {
 
-              await createNotification(
+              await createNotificationForAll(
 
                 db,
 
@@ -711,7 +827,7 @@ async function handleRoute(request, { params }) {
 
                 "admission-club",
 
-                 email,
+                
 
                 "admission-club"
 
@@ -751,7 +867,7 @@ async function handleRoute(request, { params }) {
 
           if (!alreadySent) {
 
-            await createNotification(
+            await createNotificationForAll(
 
             db,
 
@@ -761,7 +877,7 @@ async function handleRoute(request, { params }) {
 
             "revenue-club",
 
-             email,
+             
 
              "revenue-club"
 
@@ -779,85 +895,105 @@ async function handleRoute(request, { params }) {
 
        if(profile){
 
-          if(profile.badges?.firestorm){
+          if (profile?.badges?.firestorm) {
 
-            await createNotification(
+            const alreadySent =
+              await db.collection("notifications").findOne({
+                 targetEmail: email,
+                 type: "hall-glory",
+                 message: {
+                    $regex: "Firestorm Badge"
+                  }
+               })
 
-              db,
+          if (!alreadySent) {
 
-              "Hall of Glory",
-
-              `${employee.name} earned the Firestorm Badge.`,
-
-               "hall-glory",
-
-               email,
-
-               "hall"
-
-            )
-
-          }
-
-          if(profile.badges?.fastStarter){
-
-            await createNotification(
-
-              db,
-
-              "Hall of Glory",
-
-              `${employee.name} earned the Fast Starter Badge.`,
-
-              "hall-glory",
-
-               email,
-
-              "hall"
-
-            )
-
-          }
-
-          if(profile.badges?.finisher){
-
-            await createNotification(
-
-              db,
-
-              "Hall of Glory",
-
-              `${employee.name} earned the Finisher Badge.`,
-
-              "hall-glory",
-
-               email,
-
-               "hall"
-
-            )
-
-          }
-
-         if(profile.badges?.consistencyStar){
-
-            await createNotification(
-
+             await createNotificationForAll(
                db,
-
-              "Hall of Glory",
-
-              `${employee.name} earned the Consistency Star Badge.`,
-
-               "hall-glory",
-
-                email,
-
+               "Hall of Glory",
+               `${employee.name} earned the Firestorm Badge.`,
+                "hall-glory",
                 "hall"
+              )
 
-            )
+           }
+
+         } 
+
+          if (profile?.badges?.fastStarter) {
+
+            const alreadySent =
+              await db.collection("notifications").findOne({
+                targetEmail: email,
+                type: "hall-glory",
+                message: {
+                     $regex: "Fast Starter Badge"
+                 }
+               })
+
+            if (!alreadySent) {
+
+              await createNotificationForAll(
+                db,
+                "Hall of Glory",
+                `${employee.name} earned the Fast Starter Badge.`,
+                "hall-glory",
+                "hall"
+             )
+
+            }
 
           }
+
+          if (profile?.badges?.finisher) {
+
+            const alreadySent =
+              await db.collection("notifications").findOne({
+                targetEmail: email,
+                type: "hall-glory",
+                message: {
+                   $regex: "Finisher Badge"
+               }
+              })
+
+            if (!alreadySent) {
+
+               await createNotificationForAll(
+                  db,
+                  "Hall of Glory",
+                  `${employee.name} earned the Finisher Badge.`,
+                  "hall-glory",
+                  "hall"
+                )
+
+            }
+
+          }
+
+         if (profile?.badges?.consistencyStar) {
+
+           const alreadySent =
+              await db.collection("notifications").findOne({
+                targetEmail: email,
+                type: "hall-glory",
+                message: {
+                  $regex: "Consistency Star Badge"
+                }
+               })
+
+            if (!alreadySent) {
+
+               await createNotificationForAll(
+                  db,
+                  "Hall of Glory",
+                  `${employee.name} earned the Consistency Star Badge.`,
+                  "hall-glory",
+                  "hall"
+               )
+
+             }
+
+           }
 
       }
       return handleCORS(
