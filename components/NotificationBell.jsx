@@ -169,14 +169,14 @@ export default function NotificationBell({ currentUser }) {
       'profile'
 
 
-    const targetEmail =
-      notification.targetEmail ||
-      notification.email
+    const profileEmail =
+      notification.profileEmail ||
+      notification.targetEmail
 
 
-    if (!targetEmail) {
+    if (!profileEmail) {
 
-      router.push('/profile')
+      router.push('/')
 
       return
 
@@ -184,8 +184,8 @@ export default function NotificationBell({ currentUser }) {
 
 
     router.push(
-      `/profile?email=${encodeURIComponent(
-        targetEmail
+      `/?profileEmail=${encodeURIComponent(
+        profileEmail
       )}&section=${encodeURIComponent(section)}`
     )
 

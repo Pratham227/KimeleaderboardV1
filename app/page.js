@@ -566,6 +566,24 @@ function DashboardView({ user, onLogout }) {
 
      }
    }
+   useEffect(() => {
+
+     if (!user?.email) return
+
+     const params = new URLSearchParams(
+       window.location.search
+      )
+
+      const profileEmail =
+        params.get('profileEmail')
+
+      if (!profileEmail) return
+
+      openCounselorProfile({
+        email: profileEmail
+       })
+
+   }, [user?.email])
    const openMyProfile = async () => {
 
      if (!user?.email) {

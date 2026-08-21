@@ -52,6 +52,7 @@ async function createNotificationForAll(
   title,
   message,
   type,
+  profileEmail,
   section = "profile"
 ) {
   const counselors = EMPLOYEES_RAW.filter(
@@ -65,6 +66,9 @@ async function createNotificationForAll(
     message,
     type,
     targetEmail: employee.email.toLowerCase(),
+    profileEmail: profileEmail
+      ? profileEmail.toLowerCase()
+      : null,
     section,
     read: false,
     createdAt: new Date()
@@ -782,6 +786,7 @@ async function handleRoute(request, { params }) {
         `${employee.name} has entered the Top 3 on the Monthly Leaderboard at #${newRank}.`,
 
          "monthly-top3-entry",
+         employee.email,
 
          "profile"
 
@@ -828,7 +833,7 @@ async function handleRoute(request, { params }) {
                 "admission-club",
 
                 
-
+                email,
                 "admission-club"
 
               )
@@ -878,7 +883,7 @@ async function handleRoute(request, { params }) {
             "revenue-club",
 
              
-
+             email,
              "revenue-club"
 
              )
@@ -913,6 +918,7 @@ async function handleRoute(request, { params }) {
                "Hall of Glory",
                `${employee.name} earned the Firestorm Badge.`,
                 "hall-glory",
+                email,
                 "hall"
               )
 
@@ -938,6 +944,7 @@ async function handleRoute(request, { params }) {
                 "Hall of Glory",
                 `${employee.name} earned the Fast Starter Badge.`,
                 "hall-glory",
+                email,
                 "hall"
              )
 
@@ -963,6 +970,7 @@ async function handleRoute(request, { params }) {
                   "Hall of Glory",
                   `${employee.name} earned the Finisher Badge.`,
                   "hall-glory",
+                  email,
                   "hall"
                 )
 
@@ -988,6 +996,7 @@ async function handleRoute(request, { params }) {
                   "Hall of Glory",
                   `${employee.name} earned the Consistency Star Badge.`,
                   "hall-glory",
+                  email,
                   "hall"
                )
 
