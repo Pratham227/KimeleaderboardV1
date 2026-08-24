@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import * as htmlToImage from 'html-to-image'
@@ -285,6 +286,7 @@ const roleConfig = {
 }
 
 function DashboardView({ user, onLogout }) {
+  const searchParams = useSearchParams()
   const [COUNSELLORS, setCounsellors] = useState([])
   const [period, setPeriod] = useState('Monthly')
   const [challengeLeaders, setChallengeLeaders] = useState({
@@ -570,20 +572,19 @@ function DashboardView({ user, onLogout }) {
 
      if (!user?.email) return
 
-     const params = new URLSearchParams(
-       window.location.search
-      )
+     const profileEmail =
+      searchParams.get('profileEmail')
 
-      const profileEmail =
-        params.get('profileEmail')
+     if (!profileEmail) return
 
-      if (!profileEmail) return
+     const section =
+       searchParams.get('section')
 
-      openCounselorProfile({
-        email: profileEmail
-       })
+     openCounselorProfile({
+       email: profileEmail
+     })
 
-   }, [user?.email])
+  }, [user?.email, searchParams])
    const openMyProfile = async () => {
 
      if (!user?.email) {
