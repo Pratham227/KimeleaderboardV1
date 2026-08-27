@@ -23,9 +23,9 @@ export default function NotificationBell({ currentUser }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // =====================================================
+  
   // LOAD NOTIFICATIONS
-  // =====================================================
+  
 
   useEffect(() => {
 
@@ -202,9 +202,9 @@ export default function NotificationBell({ currentUser }) {
     ).length
 
 
-  // =====================================================
+  
   // NOTIFICATION TYPE
-  // =====================================================
+ 
 
   function getNotificationMeta(notification) {
 
@@ -356,9 +356,9 @@ export default function NotificationBell({ currentUser }) {
   }
 
 
-  // =====================================================
+  
   // TIME FORMAT
-  // =====================================================
+  
 
   function formatTime(dateValue) {
 

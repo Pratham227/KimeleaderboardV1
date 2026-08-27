@@ -18,6 +18,7 @@ import { getSortedRowModel } from '@tanstack/react-table'
 import ProfileSection from '@/components/leaderboard/profile/ProfileSection'
 import NotificationBell from '@/components/NotificationBell'
 
+
 /* ------------- LOGO ------------- */
 const Logo = ({ size = 40 }) => (
   <div className="flex items-center gap-3">
@@ -1292,396 +1293,551 @@ function LeaderboardTable({ rows, onSnap, onProfile }) {
 }
 
 function RewardsSection() {
-  const contest = REWARD_CONTEST
+  const contest = {
+    title: '20 Admissions Challenge',
+    benchmark: 20,
+    prizeValue: '₹50,000',
+    winner: 'Suwarnaprabha Dive',
+
+    rewards: [
+      {
+        name: 'PlayStation 5',
+        image: '/rewards/ps5.png',
+        description: 'Gaming Console'
+      },
+      {
+        name: 'Dyson Airwrap',
+        image: '/rewards/dyson.png',
+        description: 'Premium Hair Styler'
+      }
+    ]
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
+      
       {/* SECTION HEADER */}
+      
+
       <SectionHeader
         icon={Gift}
         title="Rewards & Glory"
-        subtitle="Hit the benchmark. Unlock the reward. Claim your glory."
+        subtitle="Previous contest · Winner announced"
       />
 
 
-      {/* MAIN CONTEST CARD */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-br from-[#171007] via-[#090b18] to-[#0b1630]"
-      >
+      
+      {/* CONTEST CARD */}
+     
 
-        {/* ================= BACKGROUND EFFECTS ================= */}
-
-        <div className="absolute -top-40 -left-40 w-[450px] h-[450px] rounded-full bg-amber-500/10 blur-[130px]" />
-
-        <div className="absolute -bottom-40 -right-40 w-[450px] h-[450px] rounded-full bg-fuchsia-500/10 blur-[130px]" />
-
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-blue-500/5 blur-[120px]" />
-
-
-        {/* ================= TOP CONTEST BAR ================= */}
-
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 md:px-10 py-5 border-b border-white/10 bg-white/[0.02]">
-
-          <div className="flex items-center gap-3">
-
-            {/* LIVE DOT */}
-            <span className="relative flex h-3 w-3">
-
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
-
-            </span>
-
-            <span className="text-xs md:text-sm font-black uppercase tracking-[0.25em] text-emerald-300">
-              Live Reward Challenge
-            </span>
-
-          </div>
+      <div className="
+        relative
+        mx-auto
+        w-full
+        max-w-5xl
+        overflow-hidden
+        rounded-3xl
+         border
+        border-yellow-500/20
+        bg-[#080a16]
+        shadow-[0_20px_70px_-35px_rgba(250,204,21,0.25)]
+      ">
 
 
-          {/* PRIZE VALUE TOP */}
-          <div className="flex items-center gap-5">
+        
+        {/* BLURRED OLD CONTEST CONTENT */}
+        
 
-  
-            <div className="px-4 py-2 rounded-full border border-amber-400/30 bg-amber-400/10">
+        <div
+          className="
+            blur-[3px]
+            opacity-55
+            pointer-events-none
+            select-none
+          "
+        >
 
-              <span className="text-xs uppercase tracking-widest text-amber-300 font-black">
-                Gifts Worth {contest.prizeValue}
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        {/* ================= MAIN CONTENT ================= */}
-
-        <div className="relative z-10 grid lg:grid-cols-[0.8fr_1.2fr] gap-10 items-center p-6 md:p-10 lg:p-12">
+          <div className="p-5 md:p-6">
 
 
-          {/* ================================================= */}
-          {/* LEFT SIDE — BENCHMARK */}
-          {/* ================================================= */}
+            {/* Contest Header */}
 
-          <motion.div
-            initial={{ opacity: 0, x: -25 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 }}
-            className="relative"
-          >
+            <div className="
+              flex
+              items-center
+              justify-between
+              gap-4
+              mb-4
+            ">
 
-            {/* BENCHMARK LABEL */}
-            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
 
-              <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400" />
+                <div className="
+                  w-12
+                  h-12
+                  rounded-2xl
+                  bg-gradient-to-br
+                  from-yellow-400
+                  to-orange-500
+                  flex
+                  items-center
+                  justify-center
+                ">
 
-              <span className="text-sm md:text-base font-black uppercase tracking-[0.3em] text-white">
-                Benchmark
-              </span>
+                  <Trophy
+                    size={25}
+                    className="text-black"
+                  />
 
-              <div className="h-px flex-1 max-w-[120px] bg-gradient-to-r from-amber-400 to-transparent" />
-
-            </div>
-
-
-            {/* BIG NUMBER */}
-            <div className="mt-5">
-
-              <div className="font-display text-[110px] sm:text-[140px] md:text-[170px] lg:text-[190px] leading-[0.8] font-black bg-gradient-to-b from-yellow-100 via-amber-300 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(245,158,11,0.25)]">
-
-                {contest.benchmark}
-
-              </div>
-
-
-              <div className="font-display text-3xl md:text-5xl font-black text-white uppercase tracking-wide mt-5">
-
-                {contest.benchmarkLabel}
-
-              </div>
-
-            </div>
-
-
-            {/* DESCRIPTION */}
-            <p className="text-white/50 text-sm md:text-base leading-relaxed mt-6 max-w-lg">
-
-              Complete the benchmark of
-
-              <span className="text-white font-black">
-                {' '}20 admissions{' '}
-              </span>
-
-              and become eligible to unlock one premium reward.
-
-            </p>
-
-
-            {/* ELIGIBILITY CARD */}
-            <div className="mt-7 inline-flex items-center gap-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] px-5 py-4">
-
-              <div className="w-12 h-12 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center">
-
-                <Target
-                  size={24}
-                  className="text-emerald-400"
-                />
-
-              </div>
-
-              <div>
-
-                <div className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-bold">
-                  Contest Eligibility
                 </div>
 
-                <div className="text-white font-black mt-1">
-                  Complete {contest.benchmark} Admissions
+
+                <div>
+
+                  <div className="
+                    text-[10px]
+                    uppercase
+                    tracking-[0.3em]
+                    text-yellow-300
+                    font-black
+                  ">
+                    Previous Contest
+                  </div>
+
+                  <h2 className="
+                    text-2xl
+                    md:text-3xl
+                    font-black
+                    text-white
+                    mt-1
+                  ">
+                    {contest.title}
+                  </h2>
+
                 </div>
 
               </div>
 
-            </div>
-          <div className="mt-8 rounded-3xl border border-yellow-400/30 bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-transparent p-6">
 
-             <div className="text-s uppercase tracking-[0.45em] text-yellow-300 font-black">
-               Grand Winner
-             </div>
-
-             <h2 className="mt-2 font-display text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-to-r from-yellow-200 via-amber-300 to-orange-500 bg-clip-text text-transparent">
-                Suwarnaprabha Dive
-             </h2>
-
-             
-
-            </div>
-
-          </motion.div>
-
-
-          {/* ================================================= */}
-          {/* RIGHT SIDE — REWARDS */}
-          {/* ================================================= */}
-
-          <motion.div
-            initial={{ opacity: 0, x: 25 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.25 }}
-            className="relative"
-          >
-
-            {/* REWARD TITLE */}
-            <div className="text-center mb-7">
-
-              <div className="text-xs uppercase tracking-[0.3em] text-white/40 font-bold">
-                Hit 20 Admissions
+              <div className="
+                px-4
+                py-2
+                rounded-full
+                bg-yellow-400/10
+                border
+                border-yellow-400/20
+                text-yellow-300
+                text-xs
+                font-black
+              ">
+                COMPLETED
               </div>
 
-              <h3 className="font-display text-2xl md:text-4xl font-black text-white mt-2">
-                CHOOSE YOUR REWARD
-              </h3>
+            </div>
 
-              <div className="font-display text-3xl md:text-5xl font-black bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent mt-2">
+
+            {/* Benchmark */}
+
+            <div className="
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/[0.03]
+              p-5
+              mb-4
+            ">
+
+              <div className="
+                text-[10px]
+                uppercase
+                tracking-[0.25em]
+                text-white/40
+                font-black
+              ">
+                Contest Benchmark
+              </div>
+
+              <div className="
+                text-3xl
+                font-black
+                text-white
+                mt-2
+              ">
+                {contest.benchmark} Admissions
+              </div>
+
+              <div className="
+                text-sm
+                text-white/40
+                mt-1
+              ">
+                Reach the admission target and unlock the premium reward.
+              </div>
+
+            </div>
+
+
+            {/* Reward Heading */}
+
+            <div className="text-center mb-4">
+
+              <div className="
+                text-[10px]
+                uppercase
+                tracking-[0.35em]
+                text-white/40
+                font-black
+              ">
+                Choose Your Reward
+              </div>
+
+              <div className="
+                text-3xl
+                md:text-4xl
+                font-black
+                text-yellow-300
+                mt-2
+              ">
                 WORTH {contest.prizeValue}
               </div>
 
             </div>
 
 
-            {/* PRODUCT GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-5 items-center">
+            {/* Rewards */}
 
+            <div className="
+              grid
+              grid-cols-1
+              md:grid-cols-2
+              gap-5
+            ">
 
-              {/* ================= PS5 ================= */}
+              {contest.rewards.map((reward) => (
 
-              <motion.div
-                whileHover={{
-                  y: -8,
-                  scale: 1.02
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 250
-                }}
-                className="group relative min-h-[390px] rounded-3xl border border-blue-400/20 bg-gradient-to-b from-blue-500/[0.08] to-white/[0.02] overflow-hidden"
-              >
+                <div
+                  key={reward.name}
+                  className="
+                    rounded-3xl
+                    border
+                    border-white/10
+                    bg-white/[0.03]
+                    p-5
+                  "
+                >
 
-                {/* PS5 GLOW */}
-                <div className="absolute top-10 left-1/2 -translate-x-1/2 w-44 h-44 rounded-full bg-blue-500/20 blur-[70px] group-hover:bg-blue-500/30 transition" />
+                  <div className="
+                    h-[150px]
+                    flex
+                    items-center
+                    justify-center
+                  ">
 
+                    <img
+                      src={reward.image}
+                      alt={reward.name}
+                      className="
+                        max-h-[130px]
+                        max-w-full
+                        object-contain
+                      "
+                    />
 
-                {/* PRODUCT IMAGE */}
-                <div className="relative h-[260px] flex items-center justify-center p-5">
-
-                  <img
-                    src={contest.rewards[0].image}
-                    alt={contest.rewards[0].name}
-                    className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_35px_rgba(59,130,246,0.35)] transition-transform duration-500 group-hover:scale-110"
-                  />
-
-                </div>
-
-
-                {/* PRODUCT DETAILS */}
-                <div className="relative z-10 text-center px-5 pb-6">
-
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-blue-300 font-black">
-                    Reward Option 01
                   </div>
 
-                  <h4 className="font-display text-2xl font-black text-white mt-2">
-                    {contest.rewards[0].name}
-                  </h4>
 
-                  <p className="text-xs text-white/40 mt-2">
-                    {contest.rewards[0].description}
-                  </p>
+                  <div className="text-center mt-3">
 
-                </div>
+                    <h3 className="
+                      text-xl
+                      font-black
+                      text-white
+                    ">
+                      {reward.name}
+                    </h3>
 
-
-                {/* BOTTOM LINE */}
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
-
-              </motion.div>
-
-
-              {/* ================= OR ================= */}
-
-              <div className="relative flex sm:flex-col items-center justify-center gap-3">
-
-                <div className="hidden sm:block h-20 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
-
-                <div className="relative">
-
-                  <div className="absolute inset-0 rounded-full bg-amber-400/40 blur-xl" />
-
-                  <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 flex items-center justify-center text-black font-display font-black text-lg border-4 border-[#0a0c18] shadow-xl">
-
-                    OR
+                    <p className="
+                      text-sm
+                      text-white/40
+                      mt-1
+                    ">
+                      {reward.description}
+                    </p>
 
                   </div>
 
                 </div>
 
-                <div className="hidden sm:block h-20 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
-
-              </div>
-
-
-              {/* ================= HAIR DRYER ================= */}
-
-              <motion.div
-                whileHover={{
-                  y: -8,
-                  scale: 1.02
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 250
-                }}
-                className="group relative min-h-[390px] rounded-3xl border border-fuchsia-400/20 bg-gradient-to-b from-fuchsia-500/[0.08] to-white/[0.02] overflow-hidden"
-              >
-
-                {/* DYSON GLOW */}
-                <div className="absolute top-10 left-1/2 -translate-x-1/2 w-44 h-44 rounded-full bg-fuchsia-500/20 blur-[70px] group-hover:bg-fuchsia-500/30 transition" />
-
-
-                {/* PRODUCT IMAGE */}
-                <div className="relative h-[260px] flex items-center justify-center p-5">
-
-                  <img
-                    src={contest.rewards[1].image}
-                    alt={contest.rewards[1].name}
-                    className="relative z-10 max-h-full max-w-full object-contain drop-shadow-[0_20px_35px_rgba(217,70,239,0.35)] transition-transform duration-500 group-hover:scale-110"
-                  />
-
-                </div>
-
-
-                {/* PRODUCT DETAILS */}
-                <div className="relative z-10 text-center px-5 pb-6">
-
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-fuchsia-300 font-black">
-                    Reward Option 02
-                  </div>
-
-                  <h4 className="font-display text-2xl font-black text-white mt-2">
-                    {contest.rewards[1].name}
-                  </h4>
-
-                  <p className="text-xs text-white/40 mt-2">
-                    {contest.rewards[1].description}
-                  </p>
-
-                </div>
-
-
-                {/* BOTTOM LINE */}
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent" />
-
-              </motion.div>
-
+              ))}
+            
             </div>
 
-          </motion.div>
-
-        </div>
 
 
-        {/* ================= BOTTOM MESSAGE ================= */}
+            {/* Old CTA */}
 
-        <div className="relative z-10 border-t border-white/10 bg-black/20 px-6 py-5">
+            <div className="
+              mt-4
+              text-center
+              rounded-2xl
+              border
+              border-white/10
+              bg-white/[0.03]
+              p-4
+            ">
 
-          <p className="text-xs md:text-sm text-center text-white/55">
+              <div className="
+                text-sm
+                font-bold
+                text-white
+              ">
+                Complete the challenge to claim your reward
+              </div>
 
-            🎯 Complete
-
-            <span className="text-white font-black">
-              {" "}20 Admissions{" "}
-            </span>
-
-            to become eligible for
-
-            <span className="text-amber-300 font-black">
-              {" "}one reward worth ₹50,000
-            </span>
-
-           </p>
-
-          <div className="mt-3 border-t border-white/10 pt-3">
-
-            <p className="text-[11px] text-center text-white/40">
-
-              <span className="text-white/60 font-semibold">
-                Terms & Conditions:
-              </span>
-
-              {" "}Reward eligibility is subject to successful form closure and company verification. Invalid, duplicate or cancelled admissions will not be considered.
-
-            </p>
+            </div>
 
           </div>
 
         </div>
 
 
-        {/* GOLD BOTTOM GLOW LINE */}
-        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-80" />
+        
+        {/* CONTEST OVER OVERLAY */}
+        
 
-      </motion.div>
+        <div className="
+          absolute
+          inset-0
+          z-30
+          flex
+          items-center
+          justify-center
+          p-5
+        ">
+
+          <div className="
+            w-full
+            max-w-md
+            text-center
+          ">
+
+
+            {/* Contest Over Badge */}
+
+            <div className="
+              inline-flex
+              items-center
+              gap-2
+              px-5
+              py-2.5
+              rounded-full
+              bg-black/75
+              border
+              border-red-400/40
+              backdrop-blur-xl
+              shadow-[0_0_35px_rgba(239,68,68,0.18)]
+            ">
+
+              <span className="
+                w-2.5
+                h-2.5
+                rounded-full
+                bg-red-400
+                shadow-[0_0_12px_rgba(248,113,113,0.9)]
+              " />
+
+              <span className="
+                text-xs
+                uppercase
+                tracking-[0.3em]
+                font-black
+                text-red-300
+              ">
+                Contest Over
+              </span>
+
+            </div>
+
+
+            {/* Winner Card */}
+
+            <div className="
+              mt-5
+              rounded-3xl
+              border
+              border-yellow-400/25
+              bg-black/75
+              backdrop-blur-xl
+              px-7
+              py-6
+              shadow-[0_0_50px_rgba(250,204,21,0.12)]
+            ">
+
+              <div className="
+                flex
+                justify-center
+                mb-3
+              ">
+
+                <div className="
+                  w-12
+                  h-12
+                  rounded-2xl
+                  bg-gradient-to-br
+                  from-yellow-300
+                  via-amber-400
+                  to-orange-500
+                  flex
+                  items-center
+                  justify-center
+                  shadow-[0_0_25px_rgba(250,204,21,0.3)]
+                ">
+
+                  <Crown
+                    size={25}
+                    className="text-black"
+                  />
+
+                </div>
+
+              </div>
+
+
+              <div className="
+                text-[10px]
+                uppercase
+                tracking-[0.3em]
+                text-yellow-300/70
+                font-black
+              ">
+                Grand Winner
+              </div>
+
+
+              <h2 className="
+                text-2xl
+                md:text-3xl
+                font-black
+                text-white
+                mt-2
+              ">
+                {contest.winner}
+              </h2>
+
+
+              <p className="
+                text-sm
+                text-white/50
+                mt-2
+              ">
+                Winner of the {contest.title}
+              </p>
+
+
+              {/* Prize */}
+
+              <div className="
+                mt-5
+                inline-flex
+                items-center
+                gap-2
+                px-4
+                py-2
+                rounded-xl
+                bg-yellow-400/10
+                border
+                border-yellow-400/20
+              ">
+
+                <Trophy
+                  size={15}
+                  className="text-yellow-300"
+                />
+
+                <span className="
+                  text-sm
+                  font-black
+                  text-yellow-300
+                ">
+                  {contest.prizeValue}
+                </span>
+
+              </div>
+
+            </div>
+
+
+            {/* Bottom message */}
+
+            <div className="
+              mt-4
+              text-[9px]
+              uppercase
+              tracking-[0.2em]
+              text-white/35
+              font-bold
+            ">
+              Winner reward awarded · New challenge coming soon
+            </div>
+
+          </div>
+
+        </div>
+
+
+        
+        {/* SUBTLE DARK OVERLAY */}
+        
+
+        <div className="
+          absolute
+          inset-0
+          z-10
+          bg-black/10
+          pointer-events-none
+        " />
+
+
+        {/* Bottom Gold Line */}
+
+        <div className="
+          absolute
+          bottom-0
+          left-0
+          right-0
+          h-px
+          bg-gradient-to-r
+          from-transparent
+          via-yellow-400/50
+          to-transparent
+          z-40
+        " />
+
+      </div>
+
+
+      
+      {/* NEW CONTEST MESSAGE */}
+      
+
+      <div className="text-center">
+
+        <p className="
+          text-[9px]
+          uppercase
+          tracking-[0.2em]
+          text-white/25
+          font-bold
+        ">
+          New rewards and challenges will be announced soon
+        </p>
+
+      </div>
 
     </div>
   )
 }
-
 function ChallengesSection({ leaders, currentUser }) {
 
   
