@@ -512,7 +512,7 @@ export default function NotificationBell({ currentUser }) {
 
       </button>
 
-
+      
       {/* =====================================================
           NOTIFICATION PANEL
       ===================================================== */}
