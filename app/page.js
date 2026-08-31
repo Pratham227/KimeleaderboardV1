@@ -1302,12 +1302,12 @@ function RewardsSection() {
     rewards: [
       {
         name: 'PlayStation 5',
-        image: '/rewards/ps5.png',
+        image: '/rewards/PS5.png',
         description: 'Gaming Console'
       },
       {
         name: 'Dyson Airwrap',
-        image: '/rewards/dyson.png',
+        image: '/rewards/Dyson.png',
         description: 'Premium Hair Styler'
       }
     ]
