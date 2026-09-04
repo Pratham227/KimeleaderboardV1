@@ -224,33 +224,18 @@ export async function GET(request) {
 
             $setOnInsert: {
 
-              email:
-                winnerEmail,
+              email: winnerEmail,
 
-              trophies: {
-
-                podiumTopper: {
-                  wins: 1,
-                  lastWon: new Date()
-                },
-
-                tripleCrown: {
-                  wins: 0,
-                  lastWon: null
-                }
-
+              "trophies.tripleCrown": {
+                wins: 0,
+                lastWon: null
               },
 
-              badges: {
-
-                fastStarter: false,
-
-                firestorm: false,
-
-                consistencyStar: false,
-
-                finisher: false
-
+               badges: {
+                 fastStarter: false,
+                 firestorm: false,
+                 consistencyStar: false,
+                 finisher: false
               }
 
             }
