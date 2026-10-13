@@ -223,16 +223,10 @@ export async function GET(request) {
               email:
                 winnerEmail,
 
-              trophies: {
-
-                podiumTopper: {
-                  wins: 0,
-                  lastWon: null
+              "trophies.podiumTopper": {
+                 wins: 0,
+                 lastWon: null
                 },
-
-                
-
-              },
 
               badges: {
 
