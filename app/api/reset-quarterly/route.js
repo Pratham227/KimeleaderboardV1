@@ -230,10 +230,7 @@ export async function GET(request) {
                   lastWon: null
                 },
 
-                tripleCrown: {
-                  wins: 1,
-                  lastWon: new Date()
-                }
+                
 
               },
 
