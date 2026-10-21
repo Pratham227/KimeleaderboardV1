@@ -15,11 +15,122 @@ let db
 
 
 function getWeekNumber(date) {
+
   const temp = new Date(date)
   temp.setHours(0,0,0,0)
   temp.setDate(temp.getDate() + 4 - (temp.getDay() || 7))
   const yearStart = new Date(temp.getFullYear(),0,1)
   return Math.ceil((((temp - yearStart) / 86400000) + 1)/7)
+}
+function emptyPeriodStats() {
+  return {
+    admissions: 0,
+    revenue: 0,
+    points: 0,
+  }
+}
+
+function getSeasonKey(date = new Date()) {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+
+  // April 1 to September 30
+  if (month >= 4 && month <= 9) {
+    return `${year}-04`
+  }
+
+  // October 1 to March 31
+  if (month >= 10) {
+    return `${year}-10`
+  }
+
+  return `${year - 1}-10`
+}
+function normalizeName(value = '') {
+  return String(value).trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function employeeIsVP(employee) {
+  return String(employee?.teamRole || '').toUpperCase() === 'VP' ||
+    String(employee?.designation || '').toUpperCase() === 'VP'
+}
+
+function employeeMatchesVertical(employee, vertical) {
+  if (!vertical || vertical === 'ALL') return true
+
+  if (employeeIsVP(employee)) {
+    const teamVerticals = Array.isArray(employee.teamVerticals)
+      ? employee.teamVerticals.map(v => String(v).trim().toUpperCase())
+      : [String(employee.vertical || 'DLP').trim().toUpperCase()]
+
+    return teamVerticals.includes(vertical)
+  }
+
+  return String(employee.vertical || 'DLP').trim().toUpperCase() === vertical
+}
+
+function reportsTo(employee, manager) {
+  const managerName = normalizeName(employee?.managerName)
+  const fullName = normalizeName(manager?.name)
+  const firstName = fullName.split(' ')[0]
+
+  return Boolean(
+    managerName &&
+    (managerName === fullName || managerName === firstName)
+  )
+}
+
+function getEmployeePeriodStats(employee, statsMap, period, currentSeasonKey) {
+  const live = statsMap[normalizeName(employee.email)] || {}
+  let data = {}
+
+  if (period.toLowerCase() === 'weekly') data = live.weekly || {}
+  else if (period.toLowerCase() === 'monthly') data = live.monthly || {}
+  else if (period.toLowerCase() === 'quarterly') data = live.quarterly || {}
+  else if (period.toLowerCase() === 'season') {
+    data = live.seasonKey === currentSeasonKey ? (live.season || {}) : {}
+  }
+  else if (period.toLowerCase() === 'lifetime') data = live.lifetime || {}
+  else data = live.monthly || {}
+
+  const admissions = Number(data.admissions || 0)
+  const revenue = Number(data.revenue || 0)
+
+  return {
+    admissions,
+    revenue,
+    points: admissions * 100 + Math.floor(revenue / 1000),
+  }
+}
+
+function getDescendants(manager, allEmployees) {
+  const found = new Map()
+  const queue = [manager]
+
+  while (queue.length) {
+    const parent = queue.shift()
+
+    for (const employee of allEmployees) {
+      const email = normalizeName(employee.email)
+
+      if (email === normalizeName(manager.email) || found.has(email)) continue
+
+      if (reportsTo(employee, parent)) {
+        found.set(email, employee)
+        queue.push(employee)
+      }
+    }
+  }
+
+  return [...found.values()]
+}
+
+function addStats(left, right) {
+  return {
+    admissions: left.admissions + right.admissions,
+    revenue: left.revenue + right.revenue,
+    points: left.points + right.points,
+  }
 }
 async function connectToMongo() {
   if (!client) {
@@ -214,6 +325,9 @@ async function handleRoute(request, { params }) {
             gender: employee.gender,
             lead: employee.lead,
             designation: employee.designation,
+            vertical: employee.vertical || 'DLP',
+            teamRole: employee.teamRole || '',
+            managerName: employee.managerName || '',
             tenure: computeTenure(employee),
             role: employee.isAdmin
               ? 'Admin'
@@ -304,6 +418,11 @@ async function handleRoute(request, { params }) {
     if (route === '/leaderboard' && method === 'GET') {
       const { searchParams } = new URL(request.url)
       const period = searchParams.get('period') || 'Monthly'
+      const requestedVertical = (
+         searchParams.get('vertical') || 'ALL'
+       ).trim().toUpperCase()
+
+      const currentSeasonKey = getSeasonKey(new Date())
   // 1. Fetch live stats from MongoDB
       const stats = await db
         .collection('leaderboard_stats')
@@ -331,67 +450,88 @@ async function handleRoute(request, { params }) {
       })
 
   // 3. Merge all employees with DB stats
-      const merged = EMPLOYEES_RAW
-       .filter(emp => !emp.isAdmin)
-       .map((emp) => {
+      const allEmployees = EMPLOYEES_RAW.filter(
+        emp => !emp.isAdmin && emp.active !== false
+      )
 
-         const live = statsMap[emp.email.toLowerCase()] || {}
+       const visibleEmployees = allEmployees.filter(
+         emp => employeeMatchesVertical(emp, requestedVertical)
+       )
 
-         let statsData
+       const merged = visibleEmployees.map(emp => {
+         const ownStats = getEmployeePeriodStats(
+           emp, statsMap, period, currentSeasonKey
+          )
 
-         if (period === 'Weekly')
-           statsData = live.weekly || {}
+         const isManager =
+           employeeIsVP(emp) ||
+           ['ASSISTANT_MANAGER', 'SENIOR_MANAGER'].includes(
+             String(emp.teamRole || '').toUpperCase()
+            )
 
-         else if (period === 'Monthly')
-           statsData = live.monthly || {}
+         const descendants = isManager
+           ? getDescendants(emp, allEmployees).filter(member =>
+              employeeMatchesVertical(
+               member,
+               requestedVertical === 'ALL' ? 'ALL' : requestedVertical
+              )
+             )
+           : []
 
-         else if (period === 'Quarterly')
-           statsData = live.quarterly || {}
+          const teamStats = descendants.reduce(
+            (total, member) =>
+              addStats(
+               total,
+               getEmployeePeriodStats(member, statsMap, period, currentSeasonKey)
+              ),
+               emptyPeriodStats()
+           )
 
-         else if (period === 'Lifetime')
-          statsData = live.lifetime || {}
+          const displayedStats = isManager
+            ? addStats(ownStats, teamStats)
+            : ownStats
 
-         else
-           statsData = live.monthly || {}
+          return {
+             name: emp.name,
+             email: emp.email,
+             gender: emp.gender,
+             branch: emp.branch || '',
+             lead: emp.lead || '',
+             designation: emp.designation || '',
 
-         const admissions = Number(statsData.admissions || 0)
-         const revenue = Number(statsData.revenue || 0)
+             admissions: displayedStats.admissions,
+             revenue: displayedStats.revenue,
+             points: displayedStats.points,
 
-         const points =
-          admissions * 100 +
-          Math.floor(revenue / 1000)
+             ownStats,
+             teamStats: isManager ? teamStats : emptyPeriodStats(),
 
-         return {
-          name: emp.name,
-          email: emp.email,
-          gender: emp.gender,
-          branch: emp.branch || '',
-          lead: emp.lead || '',
-          designation: emp.designation || '',
-          admissions,
-          revenue,
-          points,
-          role: categoryForEmployee(emp),
-          tenure: computeTenure(emp),
-          movement: 0,
-          streak: 0,
-          winRate: 0,
-          initials: emp.name
-            .split(' ')
-            .map(x => x[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2),
-          achievements:
-            achievementMap[emp.email.toLowerCase()] || {
+             role: categoryForEmployee(emp),
+             tenure: computeTenure(emp),
+             vertical: emp.vertical || 'DLP',
+             teamVerticals: emp.teamVerticals || undefined,
+             teamRole: emp.teamRole || '',
+             managerName: emp.managerName || '',
 
-              trophies: {},
+             movement: 0,
+             streak: 0,
+             winRate: 0,
 
-              badges: {}
+             initials: emp.name
+               .split(' ')
+               .map(x => x[0])
+               .join('')
+               .toUpperCase()
+               .slice(0, 2),
 
-           },
+            achievements:
+              achievementMap[normalizeName(emp.email)] || {
+                trophies: {},
+                badges: {},
+              },
           }
-       })
+        })
+
 
   // 4. Sort by points
      merged.sort((a, b) => b.points - a.points)
@@ -617,6 +757,7 @@ async function handleRoute(request, { params }) {
       existing.monthly = existing.monthly || { admissions: 0, revenue: 0, points: 0 }
       existing.quarterly = existing.quarterly || { admissions: 0, revenue: 0, points: 0 }
       existing.lifetime = existing.lifetime || { admissions: 0, revenue: 0, points: 0}
+      existing.season = existing.season || emptyPeriodStats()
       // Admission History
       existing.admissionHistory = existing.admissionHistory || []
         // 🔥 RESET LOGIC (ADD THIS BLOCK HERE)
@@ -631,11 +772,15 @@ async function handleRoute(request, { params }) {
      const currentQuarter =
       `${effectiveDate.getFullYear()}-${Math.floor(effectiveDate.getMonth()/3) + 1}`
 
+     const currentSeason = getSeasonKey(effectiveDate)
+
 // Initialize if missing
      if (!existing.weekKey) existing.weekKey = currentWeek
      if (!existing.monthKey) existing.monthKey = currentMonth
      if (!existing.quarterKey) existing.quarterKey = currentQuarter
-
+     if (!existing.seasonKey) {
+      existing.seasonKey = currentSeason
+     }
 // 🔥 RESET BASED ON PERIOD CHANGE (NOT TIME)
      if (existing.weekKey !== currentWeek) {
       existing.weekly = { admissions: 0, revenue: 0, points: 0 }
@@ -656,6 +801,10 @@ async function handleRoute(request, { params }) {
     if (existing.quarterKey !== currentQuarter) {
       existing.quarterly = { admissions: 0, revenue: 0, points: 0 }
       existing.quarterKey = currentQuarter
+    }
+    if (existing.seasonKey !== currentSeason) {
+      existing.season = emptyPeriodStats()
+      existing.seasonKey = currentSeason
     }
     const oldTopThree = await db
       .collection('leaderboard_stats')
@@ -703,6 +852,9 @@ async function handleRoute(request, { params }) {
       existing.quarterly.admissions += totalAdmissions
       existing.quarterly.revenue += revenue
 
+      existing.season.admissions += totalAdmissions
+      existing.season.revenue += revenue 
+
       existing.lifetime.admissions += totalAdmissions
       existing.lifetime.revenue += revenue
       for (let i = 0; i < totalAdmissions; i++) {
@@ -724,7 +876,12 @@ async function handleRoute(request, { params }) {
       existing.weekly.points = calcPoints(existing.weekly.admissions, existing.weekly.revenue)
       existing.monthly.points = calcPoints(existing.monthly.admissions, existing.monthly.revenue)
       existing.quarterly.points = calcPoints(existing.quarterly.admissions, existing.quarterly.revenue)
+      existing.season.points = calcPoints(
+        existing.season.admissions,
+        existing.season.revenue
+      )
       existing.lifetime.points = calcPoints(existing.lifetime.admissions, existing.lifetime.revenue)
+      existing.vertical = employee.vertical || 'DLP'
       existing.updatedAt = now
 
       await db.collection('leaderboard_stats').updateOne(

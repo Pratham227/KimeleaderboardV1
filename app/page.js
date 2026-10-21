@@ -288,8 +288,14 @@ const roleConfig = {
 
 function DashboardView({ user, onLogout }) {
   const searchParams = useSearchParams()
+  const [selectedVertical, setSelectedVertical] = useState(null)
   const [COUNSELLORS, setCounsellors] = useState([])
   const [period, setPeriod] = useState('Monthly')
+  const [category, setCategory] = useState('Counsellor') 
+  // Counsellor | Assistant Manager | Senior Manager | VP
+  useEffect(() => {
+    setCategory('Counsellor')
+  }, [selectedVertical])
   const [challengeLeaders, setChallengeLeaders] = useState({
   weekly: null,
   monthly: null,
@@ -310,11 +316,13 @@ function DashboardView({ user, onLogout }) {
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [period, user?.email])
+  }, [period, selectedVertical, user?.email])
 
   const loadLeaderboard = async () => {
      try {
-       const res = await fetch(`/api/leaderboard?period=${period}`)
+       const res = await fetch(
+          `/api/leaderboard?period=${encodeURIComponent(period)}&vertical=${encodeURIComponent(selectedVertical || 'ALL')}`
+       )
        const data = await res.json()
 
        if (data.ok) {
@@ -419,7 +427,7 @@ function DashboardView({ user, onLogout }) {
   const [selectedCounselor, setSelectedCounselor] = useState(null)
   const [profileData, setProfileData] = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
-  const [category, setCategory] = useState(null) // null | 'King' | 'Prince' | 'Warrior'
+ 
   const [snapUser, setSnapUser] = useState(null) // user object for snapshot modal
   const [time, setTime] = useState({ d: 10, h: 3, m: 28, s: 42 })
 
@@ -451,7 +459,33 @@ function DashboardView({ user, onLogout }) {
     COUNSELLORS
       .filter(c => branch === 'All' || c.branch === branch)
       .filter(c => lead === 'All' || c.lead === lead)
-      .filter(c => !category || c.role === category)
+      .filter(c => {
+         if (!category) return true
+
+         const rawRole = String(
+           c.teamRole || c.designation || ''
+          )
+           .trim()
+           .toUpperCase()
+           .replace(/[\s-]+/g, '_')
+
+         const normalizedRole = rawRole.includes('COUNSELL')
+           ? 'Counsellor'
+           : rawRole === 'ASSISTANT_MANAGER'
+           ? 'Assistant Manager'
+           : rawRole === 'SENIOR_MANAGER'
+           ? 'Senior Manager'
+           : (
+              rawRole === 'VP' ||
+              rawRole.startsWith('VP_') ||
+              rawRole.startsWith('VICE_PRESIDENT')
+             )
+           ? 'VP'
+           : ''
+
+        return normalizedRole === category
+      })
+    
       .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
   , [COUNSELLORS, branch, lead, search, category])
 
@@ -638,18 +672,280 @@ function DashboardView({ user, onLogout }) {
   const isAdmin = !!(currentUser && currentUser.isAdmin)
 
   const roleCounts = useMemo(() => {
-    const counts = { King: 0, Prince: 0, Warrior: 0 }
+   const counts = {
+    Counsellor: 0,
+    'Assistant Manager': 0,
+    'Senior Manager': 0,
+    VP: 0,
+   }
 
-    COUNSELLORS.forEach(c => {
-      if (c.role === "King") counts.King++
-      else if (c.role === "Prince") counts.Prince++
-      else if (c.role === "Warrior") counts.Warrior++
-    })
+   COUNSELLORS.forEach(c => {
+    const rawRole = String(
+      c.teamRole || c.designation || ''
+    )
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_')
 
-    return counts
-  }, [COUNSELLORS])  
+    const normalizedRole = rawRole.includes('COUNSELL')
+      ? 'Counsellor'
+      : rawRole === 'ASSISTANT_MANAGER'
+      ? 'Assistant Manager'
+      : rawRole === 'SENIOR_MANAGER'
+      ? 'Senior Manager'
+      : ['VP', 'VICE_PRESIDENT'].includes(rawRole)
+      ? 'VP'
+      : ''
 
+    if (normalizedRole) {
+      counts[normalizedRole]++
+    }
+  })
+
+   return counts
+  }, [COUNSELLORS]) 
+    // Show vertical selection screen before opening the dashboard
+   // Vertical Selection Screen
+  if (!selectedVertical) {
+    return (
+      <div className="min-h-screen bg-[#070817] text-white relative overflow-hidden">
+        {/* Background atmosphere */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-40 -left-32 w-[600px] h-[600px] rounded-full bg-fuchsia-600/15 blur-[150px]" />
+          <div className="absolute top-1/4 right-[-150px] w-[650px] h-[650px] rounded-full bg-blue-600/15 blur-[160px]" />
+          <div className="absolute bottom-[-200px] left-1/3 w-[550px] h-[550px] rounded-full bg-amber-500/10 blur-[150px]" />
+          <div className="absolute inset-0 bg-grid opacity-30" />
+          <div className="absolute inset-0 stars opacity-60" />
+        </div>
+
+        {/* Top navigation */}
+        <header className="relative z-10 flex items-center justify-between px-6 md:px-12 lg:px-16 py-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 via-blue-500 to-fuchsia-500 p-[1px] shadow-lg shadow-violet-500/20">
+              <div className="w-full h-full rounded-2xl bg-[#101126] flex items-center justify-center">
+                <Trophy size={23} className="text-violet-300" />
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xl font-black tracking-tight">
+                KIME <span className="text-violet-400">CAREERS</span>
+              </div>
+              <div className="text-[9px] tracking-[0.35em] text-gray-500 font-semibold">
+                PERFORMANCE ARENA
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onLogout}
+            className="group flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-gray-300 backdrop-blur-xl transition-all hover:border-fuchsia-400/40 hover:bg-white/[0.08] hover:text-white"
+          >
+            <LogOut
+              size={16}
+              className="transition-transform group-hover:-translate-x-0.5"
+            />
+            Logout
+          </button>
+        </header>
+
+        {/* Main content */}
+        <main className="relative z-10 max-w-[1440px] mx-auto px-6 md:px-12 lg:px-16 pt-10 pb-16 lg:pt-16">
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-12 lg:gap-16 items-center">
+
+            {/* Left: Hero section */}
+            <section className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.07] px-4 py-2 mb-8">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                </span>
+                <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.22em] text-fuchsia-200">
+                  Your next level starts here
+                </span>
+              </div>
+
+              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-black leading-[1.05] tracking-tight">
+                Choose Your
+                <br />
+                <span className="bg-gradient-to-r from-fuchsia-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
+                  Battlefield.
+                </span>
+              </h1>
+
+              <p className="mt-7 max-w-lg text-base md:text-lg leading-8 text-gray-400">
+                Every admission counts. Every milestone matters.
+                Choose your business vertical and see how you rank
+                among the best performers at KIME.
+              </p>
+
+              {/* Feature chips */}
+              <div className="flex flex-wrap gap-3 mt-8">
+                <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3">
+                  <Trophy size={16} className="text-amber-300" />
+                  <span className="text-xs font-semibold text-gray-300">
+                    Live Rankings
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3">
+                  <TrendingUp size={16} className="text-emerald-300" />
+                  <span className="text-xs font-semibold text-gray-300">
+                    Performance
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3">
+                  <Award size={16} className="text-violet-300" />
+                  <span className="text-xs font-semibold text-gray-300">
+                    Achievements
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-12 hidden lg:flex items-center gap-3 text-xs text-gray-600">
+                <div className="h-px w-12 bg-gradient-to-r from-fuchsia-500 to-transparent" />
+                COMPETE · CLIMB · CONQUER
+              </div>
+            </section>
+
+            {/* Right: Vertical selection */}
+            <section>
+              <div className="mb-6">
+                <p className="text-xs font-bold tracking-[0.28em] uppercase text-violet-300">
+                  Select your vertical
+                </p>
+                <h2 className="text-2xl md:text-3xl font-extrabold mt-3">
+                  Enter the <span className="text-gray-400">Arena</span>
+                </h2>
+                <p className="text-sm text-gray-500 mt-2">
+                  Select a workspace to explore its leaderboard.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                {/* DLP card */}
+                <button
+                  onClick={() => {
+                    setSelectedVertical('DLP')
+                    setCategory(null)
+                    setBranch('All')
+                    setLead('All')
+                    setSearch('')
+                    setTab('leaderboard')
+                  }}
+                  className="group relative text-left min-h-[320px] rounded-3xl p-[1px] overflow-hidden bg-gradient-to-br from-fuchsia-500/60 via-violet-500/20 to-blue-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_70px_rgba(168,85,247,0.18)]"
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-fuchsia-500/20 to-blue-500/10" />
+
+                  <div className="relative h-full min-h-[320px] rounded-3xl overflow-hidden bg-gradient-to-br from-[#1a1531] via-[#111326] to-[#0b0d1c] p-6 flex flex-col">
+                    <div className="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-fuchsia-500/15 blur-3xl group-hover:bg-fuchsia-500/25 transition-all" />
+
+                    <div className="relative flex items-center justify-between">
+                      <div className="w-14 h-14 rounded-2xl border border-fuchsia-300/20 bg-fuchsia-400/10 flex items-center justify-center shadow-lg shadow-fuchsia-500/10">
+                        <Trophy size={27} className="text-fuchsia-300" />
+                      </div>
+
+                      <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-fuchsia-200/70 border border-fuchsia-300/15 bg-fuchsia-300/[0.05] px-3 py-1.5 rounded-full">
+                        Vertical 01
+                      </span>
+                    </div>
+
+                    <div className="relative mt-8">
+                      <p className="text-3xl font-black tracking-tight">
+                        DLP<span className="text-fuchsia-400">.</span>
+                      </p>
+                      <p className="text-sm text-gray-400 leading-6 mt-3">
+                        Drive admissions. Climb the rankings.
+                        Make every achievement count.
+                      </p>
+                    </div>
+
+                    <div className="mt-auto pt-8">
+                      <div className="flex items-center justify-between border-t border-white/[0.08] pt-5">
+                        <span className="text-sm font-bold text-fuchsia-300">
+                          Enter DLP
+                        </span>
+                        <div className="w-9 h-9 rounded-xl border border-fuchsia-300/20 bg-fuchsia-400/10 flex items-center justify-center transition-all group-hover:bg-fuchsia-400 group-hover:text-white group-hover:translate-x-1">
+                          <ArrowRight size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Premium card */}
+                <button
+                  onClick={() => {
+                    setSelectedVertical('PREMIUM')
+                    setCategory(null)
+                    setBranch('All')
+                    setLead('All')
+                    setSearch('')
+                    setTab('leaderboard')
+                  }}
+                  className="group relative text-left min-h-[320px] rounded-3xl p-[1px] overflow-hidden bg-gradient-to-br from-blue-400/60 via-cyan-400/20 to-violet-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_70px_rgba(34,211,238,0.15)]"
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-cyan-400/15 to-blue-500/10" />
+
+                  <div className="relative h-full min-h-[320px] rounded-3xl overflow-hidden bg-gradient-to-br from-[#10232f] via-[#101728] to-[#0b0d1c] p-6 flex flex-col">
+                    <div className="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-cyan-400/15 blur-3xl group-hover:bg-cyan-400/25 transition-all" />
+
+                    <div className="relative flex items-center justify-between">
+                      <div className="w-14 h-14 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 flex items-center justify-center shadow-lg shadow-cyan-500/10">
+                        <Gem size={27} className="text-cyan-300" />
+                      </div>
+
+                      <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-cyan-200/70 border border-cyan-300/15 bg-cyan-300/[0.05] px-3 py-1.5 rounded-full">
+                        Vertical 02
+                      </span>
+                    </div>
+
+                    <div className="relative mt-8">
+                      <p className="text-3xl font-black tracking-tight">
+                        Premium<span className="text-cyan-300">.</span>
+                      </p>
+                      <p className="text-sm text-gray-400 leading-6 mt-3">
+                        Own your targets. Track your growth.
+                        Rise through the leaderboard.
+                      </p>
+                    </div>
+
+                    <div className="mt-auto pt-8">
+                      <div className="flex items-center justify-between border-t border-white/[0.08] pt-5">
+                        <span className="text-sm font-bold text-cyan-300">
+                          Enter Premium
+                        </span>
+                        <div className="w-9 h-9 rounded-xl border border-cyan-300/20 bg-cyan-400/10 flex items-center justify-center transition-all group-hover:bg-cyan-400 group-hover:text-[#07111b] group-hover:translate-x-1">
+                          <ArrowRight size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 mt-6 text-xs text-gray-500">
+                <Lock size={13} className="text-gray-600" />
+                <span>
+                  You can access both verticals with your employee login.
+                </span>
+              </div>
+            </section>
+          </div>
+
+          {/* Footer */}
+          <footer className="relative mt-16 pt-6 border-t border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] tracking-[0.12em] text-gray-600">
+            <span>© 2026 KIME CAREERS</span>
+            <span>BUILT FOR AMBITION. DESIGNED FOR CHAMPIONS.</span>
+          </footer>
+        </main>
+      </div>
+    )
+  }
   return (
+     
     <div className="min-h-screen bg-aurora relative overflow-hidden">
       <div className="bg-grid absolute inset-0 opacity-40 pointer-events-none" />
       <div className="stars opacity-70" />
@@ -658,9 +954,31 @@ function DashboardView({ user, onLogout }) {
 
       {/* NAVBAR */}
       <nav className="relative z-20 sticky top-0 backdrop-blur-xl bg-[#05050f]/70 border-b border-white/5">
-        <div className="max-w-[1400px] mx-auto px-6 py-3.5 flex items-center justify-between gap-6">
-          <Logo />
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-full bg-white/5 border border-white/10">
+         <div className="max-w-[1400px] mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+
+    {/* Logo + Change Vertical */}
+           <div className="flex items-center gap-3 shrink-0">
+             <Logo />
+
+             <button
+               onClick={() => {
+                 setSelectedVertical(null)
+                 setCategory(null)
+                 setBranch('All')
+                 setLead('All')
+                 setSearch('')
+                 setTab('leaderboard')
+                }}
+               className="flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20 hover:border-violet-400/40"
+               title="Switch between DLP and Premium"
+             >
+               <ArrowLeft size={14} />
+               <span>Change Vertical</span>
+            </button>
+           </div>
+
+    {/* Keep your existing navigation links below */}
+           <div className="hidden md:flex items-center gap-1 p-1 rounded-full bg-white/5 border border-white/10">
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'leaderboard', label: 'Leaderboard', icon: BarChart3 },
@@ -770,7 +1088,7 @@ function DashboardView({ user, onLogout }) {
       {/* PERIOD TABS */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="inline-flex p-1 rounded-full glass border border-white/10">
-                  {['Weekly', 'Monthly', 'Quarterly'].map(p => (
+                  {['Weekly', 'Monthly', 'Quarterly', 'Season'].map(p => (
                    <button
                      key={p}
                      onClick={() => setPeriod(p)}
@@ -798,24 +1116,40 @@ function DashboardView({ user, onLogout }) {
              </div>
 
       {/* ROLE STATS */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-               { role: 'King', desc: 'Reigning closers (>6 mo tenure)' },
-               { role: 'Prince', desc: 'Royal risers (>3-6 mo tenure)' },
-               { role: 'Warrior', desc: 'Battle ready (0-3 mo tenure)' },
-              ].map((s, i) => (
-                <RoleCard
-                  key={s.role}
-                  {...s}
-                  count={roleCounts[s.role] || 0}
-                  i={i}
-                  active={category === s.role}
-                  onClick={() =>
-                  setCategory(category === s.role ? null : s.role)
-                }
+               {
+                role: 'Counsellor',
+                desc: 'Counsellor rankings',
+                icon: Users,
+               },
+               {
+                role: 'Assistant Manager',
+                desc: 'Assistant Manager rankings',
+                icon: Target,
+               },
+               {
+                role: 'Senior Manager',
+                desc: 'Senior Manager rankings',
+                icon: TrendingUp,
+               },
+               {
+                role: 'VP',
+                desc: 'Vice President of sales rankings',
+                icon: Crown,
+               },
+            ].map((s, i) => (
+             <RoleCard
+               key={s.role}
+               {...s}
+               count={roleCounts[s.role] || 0}
+               i={i}
+                active={category === s.role}
+               onClick={() => setCategory(s.role)}
               />
-            ))}
-           </section>
+             
+           ))}
+          </section>
 
       {/* FILTERS */}
            <section className="glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
@@ -850,6 +1184,7 @@ function DashboardView({ user, onLogout }) {
 
            <LeaderboardTable
              rows={rest}
+             category={category}
              onSnap={setSnapUser}
              onProfile={openCounselorProfile}
            />
@@ -1132,31 +1467,56 @@ function Stat({ label, value, format, accent = 'text-white' }) {
   )
 }
 
-function RoleCard({ role, desc, count, i, active, onClick }) {
-  const cfg = roleConfig[role]
-  const Icon = cfg.icon
+function RoleCard({ role, desc, count, i, active, onClick, icon: CustomIcon }) {
+  const cfg = roleConfig[role] || {
+    icon: Users,
+    emoji: '👥',
+    color: 'from-fuchsia-500 to-violet-600',
+    glow: 'rgba(217,70,239,0.25)',
+    txt: 'text-fuchsia-300',
+  }
+
+  const Icon = CustomIcon || cfg.icon
+
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-      whileHover={{ y: -6, scale: 1.02 }}
-      className="relative group text-left"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: i * 0.08 }}
+      whileHover={{ y: -4 }}
+      className={`relative overflow-hidden rounded-2xl border p-5 text-left transition-all ${
+        active
+          ? 'border-fuchsia-400/40 bg-white/[0.09]'
+          : 'border-white/10 bg-[#101222]/80 hover:border-white/20'
+      }`}
+      style={{
+        boxShadow: active ? `0 0 24px ${cfg.glow}` : 'none',
+      }}
     >
-      <div className={`glass-strong rounded-2xl p-5 border overflow-hidden relative transition ${active ? 'border-white/40 ring-2 ring-fuchsia-400/50' : 'border-white/10'}`}
-        style={{ boxShadow: `0 10px 40px -15px ${cfg.glow}${active ? ', 0 0 30px ' + cfg.glow : ''}` }}>
-        <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br ${cfg.color} ${active ? 'opacity-70' : 'opacity-30'} blur-2xl group-hover:opacity-60 transition`} />
-        <div className="flex items-start justify-between relative">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cfg.color} grid place-items-center shadow-lg text-2xl`}>
-            <span>{cfg.emoji}</span>
-          </div>
-          <div className={`text-[10px] px-2 py-0.5 rounded-full border border-white/10 ${cfg.txt} bg-white/5`}>{active ? 'ACTIVE' : 'TIER'}</div>
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${cfg.color}`} />
+
+      <div className="flex items-center justify-between gap-3">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.05] ${cfg.txt}`}>
+          <Icon size={21} />
         </div>
-        <div className="mt-4">
-          <div className={`font-display font-bold text-2xl ${cfg.txt}`}><Counter to={count} /></div>
-          <div className="font-display font-semibold text-white mt-0.5">{role}</div>
-          <div className="text-xs text-white/50">{desc}</div>
-        </div>
+
+        <span className="rounded-lg bg-white/[0.06] px-3 py-1 text-sm font-bold text-white">
+          {count || 0}
+        </span>
+      </div>
+
+      <h3 className="mt-5 text-lg font-extrabold text-white">
+        {role}
+      </h3>
+
+      <p className="mt-1 text-xs text-gray-400">
+        {desc}
+      </p>
+
+      <div className={`mt-4 text-xs font-bold ${cfg.txt}`}>
+        {active ? 'Filtering active' : 'View rankings'} →
       </div>
     </motion.button>
   )
@@ -1230,7 +1590,7 @@ function RoleBadge({ role }) {
   )
 }
 
-function LeaderboardTable({ rows, onSnap, onProfile }) {
+function LeaderboardTable({ rows, category, onSnap, onProfile }) {
   const max = Math.max(...rows.map(r => r.displayPoints), 1)
   return (
     <div className="glass-strong rounded-2xl border border-white/10 overflow-hidden">
@@ -1244,7 +1604,11 @@ function LeaderboardTable({ rows, onSnap, onProfile }) {
           <motion.div key={c.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.025 }}
             className="row-hover grid grid-cols-[70px_1fr_110px_110px_100px_130px_120px_60px] gap-3 px-5 py-4 items-center text-sm transition-all">
             <div className="flex items-center gap-2">
-              <div className="font-display font-black text-lg text-white/80 w-8">##{i + 4}</div>
+               <div className="font-display font-black text-lg text-white/80 w-8">
+                 #{['Assistant Manager', 'Senior Manager', 'VP'].includes(category)
+                    ? i + 1
+                    : i + 4}
+                </div>
               <MovementArrow m={c.movement} />
             </div>
             <button
