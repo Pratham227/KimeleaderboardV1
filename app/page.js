@@ -721,11 +721,15 @@ function DashboardView({ user, onLogout }) {
         {/* Top navigation */}
         <header className="relative z-10 flex items-center justify-between px-6 md:px-12 lg:px-16 py-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 via-blue-500 to-fuchsia-500 p-[1px] shadow-lg shadow-violet-500/20">
-              <div className="w-full h-full rounded-2xl bg-[#101126] flex items-center justify-center">
-                <Trophy size={23} className="text-violet-300" />
-              </div>
-            </div>
+             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 via-blue-500 to-fuchsia-500 p-[1px] shadow-lg shadow-violet-500/20">
+               <div className="w-full h-full rounded-2xl bg-[#101126] flex items-center justify-center overflow-hidden">
+                 <img
+                   src="/Kimelogo.jpg"
+                   alt="KIME Careers"
+                     className="w-full h-full object-contain rounded-2xl"
+                  />
+               </div>
+             </div>
 
             <div>
               <div className="text-xl font-black tracking-tight">
@@ -837,6 +841,7 @@ function DashboardView({ user, onLogout }) {
                   }}
                   className="group relative text-left min-h-[320px] rounded-3xl p-[1px] overflow-hidden bg-gradient-to-br from-fuchsia-500/60 via-violet-500/20 to-blue-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_70px_rgba(168,85,247,0.18)]"
                 >
+                  <div className="vertical-rotating-frame" aria-hidden="true" />
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-fuchsia-500/20 to-blue-500/10" />
 
                   <div className="relative h-full min-h-[320px] rounded-3xl overflow-hidden bg-gradient-to-br from-[#1a1531] via-[#111326] to-[#0b0d1c] p-6 flex flex-col">
@@ -887,6 +892,7 @@ function DashboardView({ user, onLogout }) {
                   }}
                   className="group relative text-left min-h-[320px] rounded-3xl p-[1px] overflow-hidden bg-gradient-to-br from-blue-400/60 via-cyan-400/20 to-violet-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_70px_rgba(34,211,238,0.15)]"
                 >
+                  <div className="vertical-rotating-frame" aria-hidden="true" />
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-cyan-400/15 to-blue-500/10" />
 
                   <div className="relative h-full min-h-[320px] rounded-3xl overflow-hidden bg-gradient-to-br from-[#10232f] via-[#101728] to-[#0b0d1c] p-6 flex flex-col">
@@ -904,7 +910,7 @@ function DashboardView({ user, onLogout }) {
 
                     <div className="relative mt-8">
                       <p className="text-3xl font-black tracking-tight">
-                        Premium<span className="text-cyan-300">.</span>
+                        Global<span className="text-cyan-300">.</span>
                       </p>
                       <p className="text-sm text-gray-400 leading-6 mt-3">
                         Own your targets. Track your growth.
@@ -915,7 +921,7 @@ function DashboardView({ user, onLogout }) {
                     <div className="mt-auto pt-8">
                       <div className="flex items-center justify-between border-t border-white/[0.08] pt-5">
                         <span className="text-sm font-bold text-cyan-300">
-                          Enter Premium
+                          Enter Global
                         </span>
                         <div className="w-9 h-9 rounded-xl border border-cyan-300/20 bg-cyan-400/10 flex items-center justify-center transition-all group-hover:bg-cyan-400 group-hover:text-[#07111b] group-hover:translate-x-1">
                           <ArrowRight size={18} />
