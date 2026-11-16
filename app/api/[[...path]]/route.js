@@ -1175,6 +1175,201 @@ async function handleRoute(request, { params }) {
         })
       )
     }
+    
+
+    // ===================================================
+    // SUPERLEAP ADMISSION CANCELLATION WEBHOOK
+    // POST /api/superleap/cancel
+    // ===================================================
+    if (route === '/superleap/cancel' && method === 'POST') {
+      const apiKey = request.headers.get('x-api-key')
+
+      if (
+        !process.env.SUPERLEAP_API_KEY ||
+        apiKey !== process.env.SUPERLEAP_API_KEY
+      ) {
+        return handleCORS(
+          NextResponse.json(
+            { ok: false, error: 'Unauthorized' },
+            { status: 401 }
+          )
+        )
+      }
+
+      const body = await request.json().catch(() => ({}))
+      const email = String(body.email || '').trim().toLowerCase()
+      const totalAdmissions = Number(body.totalAdmissions)
+      const revenue = Number(body.revenue)
+
+      if (
+        !email ||
+        !Number.isSafeInteger(totalAdmissions) ||
+        totalAdmissions !== 1 ||
+        !Number.isFinite(revenue) ||
+        revenue <= 0
+      ) {
+        return handleCORS(
+          NextResponse.json(
+            { ok: false, error: 'Invalid cancellation data' },
+            { status: 400 }
+          )
+        )
+      }
+
+      const employee = findEmployeeByEmail(email)
+
+      if (!employee) {
+        return handleCORS(
+          NextResponse.json(
+            { ok: false, error: 'Employee not found' },
+            { status: 404 }
+          )
+        )
+      }
+
+      const collection = db.collection('leaderboard_stats')
+      const existing = await collection.findOne({ email })
+
+      if (!existing) {
+        return handleCORS(
+          NextResponse.json(
+            { ok: false, error: 'No admission statistics found' },
+            { status: 404 }
+          )
+        )
+      }
+
+      const history = existing.admissionHistory || []
+
+      // Match one recorded admission by revenue.
+      const index = history.findIndex(
+        item => Math.abs(Number(item.revenue) - revenue) < 0.01
+      )
+
+      if (index === -1) {
+        return handleCORS(
+          NextResponse.json(
+            { ok: false, error: 'Matching admission not found' },
+            { status: 409 }
+          )
+        )
+      }
+
+      const admission = history[index]
+      const admissionDate = new Date(admission.date)
+
+      if (Number.isNaN(admissionDate.getTime())) {
+        return handleCORS(
+          NextResponse.json(
+            { ok: false, error: 'Invalid original admission date' },
+            { status: 409 }
+          )
+        )
+      }
+
+      const weekKey =
+        `${admissionDate.getFullYear()}-${getWeekNumber(admissionDate)}`
+
+      const monthKey =
+        `${admissionDate.getFullYear()}-${admissionDate.getMonth() + 1}`
+
+      const quarterKey =
+        `${admissionDate.getFullYear()}-${Math.floor(admissionDate.getMonth() / 3) + 1}`
+
+      const seasonKey = getSeasonKey(admissionDate)
+
+      const updates = {}
+      const periods = [
+        ['weekly', 'weekKey', weekKey],
+        ['monthly', 'monthKey', monthKey],
+        ['quarterly', 'quarterKey', quarterKey],
+        ['season', 'seasonKey', seasonKey],
+        ['lifetime', null, null]
+      ]
+
+      const calculatePoints = (a, r) =>
+        a * 100 + Math.floor(r / 1000)
+
+      for (const [period, keyField, targetKey] of periods) {
+        // Only modify a stored period if it matches
+        // the original admission's period.
+        if (keyField && existing[keyField] !== targetKey) {
+          continue
+        }
+
+        const stats = existing[period] || {
+          admissions: 0,
+          revenue: 0,
+          points: 0
+        }
+
+        const newAdmissions = Number(stats.admissions || 0) - 1
+        const newRevenue = Number(stats.revenue || 0) - revenue
+
+        if (newAdmissions < 0 || newRevenue < -0.01) {
+          return handleCORS(
+            NextResponse.json(
+              { ok: false, error: `Insufficient ${period} totals` },
+              { status: 409 }
+            )
+          )
+        }
+
+        updates[period] = {
+          admissions: newAdmissions,
+          revenue: Math.max(0, newRevenue),
+          points: calculatePoints(
+            newAdmissions,
+            Math.max(0, newRevenue)
+          )
+        }
+      }
+
+      // Remove only one matching history entry.
+      const updatedHistory = [...history]
+      updatedHistory.splice(index, 1)
+
+      const result = await collection.updateOne(
+        {
+          _id: existing._id,
+          admissionHistory: history
+        },
+        {
+          $set: {
+            ...updates,
+            admissionHistory: updatedHistory,
+            updatedAt: new Date()
+          }
+        }
+      )
+
+      if (result.modifiedCount !== 1) {
+        return handleCORS(
+          NextResponse.json(
+            {
+              ok: false,
+              error: 'Concurrent update detected. Retry after checking totals.'
+            },
+            { status: 409 }
+          )
+        )
+      }
+
+      return handleCORS(
+        NextResponse.json({
+          ok: true,
+          message: 'Admission cancellation processed',
+          data: {
+            email,
+            cancelledAdmissions: 1,
+            cancelledRevenue: revenue,
+            originalMonth: monthKey,
+            monthly: updates.monthly || existing.monthly,
+            lifetime: updates.lifetime
+          }
+        })
+      )
+    }
 
     // ---------------- NOT FOUND ----------------
     return handleCORS(
